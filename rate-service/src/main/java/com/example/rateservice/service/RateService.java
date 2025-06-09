@@ -1,25 +1,23 @@
 package com.example.rateservice.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import com.example.rateservice.config.ExchangeRateApiConfig;
+import com.example.rateservice.exception.CurrencyNotSupportedException;
+import com.example.rateservice.exception.ExchangeRateFetchException;
 
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
 @Service
 public class RateService {
+
   private final ExchangeRateApiConfig apiConfig;
 
   public RateService(ExchangeRateApiConfig apiConfig) {
     this.apiConfig = apiConfig;
   }
-
-  private static final Logger logger = LoggerFactory.getLogger(RateService.class);
 
   @SuppressWarnings("unchecked")
   public Map<String, Object> fetchRate(String from, String to) {
@@ -31,7 +29,7 @@ public class RateService {
 
       // Validate response
       if (response == null || !"success".equals(response.get("result"))) {
-        throw new RuntimeException("Invalid API response: " + response);
+        throw new CurrencyNotSupportedException("Currency not supported: " + from + " or " + to);
       }
 
       // Extract the conversion rate
@@ -42,11 +40,9 @@ public class RateService {
           "rate", rate);
 
     } catch (HttpClientErrorException e) {
-      logger.error("API error: {}", e.getMessage());
-      throw new RuntimeException("Currency not supported: " + from + " or " + to);
+      throw new CurrencyNotSupportedException("Currency not supported: " + from + " or " + to);
     } catch (Exception e) {
-      logger.error("Unexpected error: {}", e.getMessage());
-      throw new RuntimeException("Failed to retrieve exchange rate. Reason: " + e.getMessage());
+      throw new ExchangeRateFetchException("Failed to retrieve exchange rate. Reason: " + e.getMessage());
     }
   }
 }
