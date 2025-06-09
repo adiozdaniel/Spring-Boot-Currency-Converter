@@ -1,5 +1,6 @@
 package com.example.mainservice.controller;
 
+import com.example.mainservice.config.RateServiceConfig;
 import com.example.mainservice.dto.ConvertRequest;
 import com.example.mainservice.dto.ConvertResponse;
 import org.slf4j.Logger;
@@ -16,9 +17,11 @@ public class ConvertController {
 
   private static final Logger logger = LoggerFactory.getLogger(ConvertController.class);
   private final RestTemplate restTemplate;
+  private final RateServiceConfig config;
 
-  public ConvertController(RestTemplate restTemplate) {
+  public ConvertController(RestTemplate restTemplate, RateServiceConfig config) {
     this.restTemplate = restTemplate;
+    this.config = config;
   }
 
   @PostMapping
@@ -33,7 +36,7 @@ public class ConvertController {
     }
 
     try {
-      String url = String.format("http://localhost:8080/rate?from=%s&to=%s", from, to);
+      String url = String.format("%s?from=%s&to=%s", config.getUrl(), from, to);
       ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
           url,
           HttpMethod.GET,
