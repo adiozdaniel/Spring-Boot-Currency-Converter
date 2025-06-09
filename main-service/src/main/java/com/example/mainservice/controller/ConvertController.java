@@ -3,10 +3,9 @@ package com.example.mainservice.controller;
 import com.example.mainservice.config.RateServiceConfig;
 import com.example.mainservice.dto.ConvertRequest;
 import com.example.mainservice.dto.ConvertResponse;
+import com.example.mainservice.exception.ServiceException;
 import com.example.mainservice.service.ConversionService;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -18,7 +17,6 @@ import java.util.Map;
 @RequestMapping("/convert")
 public class ConvertController {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConvertController.class);
   private final RestTemplate restTemplate;
   private final RateServiceConfig config;
   private final ConversionService conversionService;
@@ -40,31 +38,26 @@ public class ConvertController {
           "error", "Invalid input: `from`, `to`, and positive `amount` are required."));
     }
 
-    try {
-      String url = String.format("%s?from=%s&to=%s", config.getUrl(), from, to);
-      ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          null,
-          new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
-          });
-      if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-        throw new RuntimeException("Rate service returned invalid response");
-      }
+    String url = String.format("%s?from=%s&to=%s", config.getUrl(), from, to);
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+        });
 
-      Map<String, Object> body = response.getBody();
-      BigDecimal rate = new BigDecimal(((Number) body.get("rate")).toString());
-      BigDecimal amountDecimal = BigDecimal.valueOf(amount);
-      BigDecimal converted = rate.multiply(amountDecimal);
-
-      conversionService.saveConversion(from.toUpperCase(), to.toUpperCase(), amountDecimal, rate, converted);
-      return ResponseEntity.ok(new ConvertResponse(from.toUpperCase(), to.toUpperCase(), rate.doubleValue(), amount,
-          converted.doubleValue()));
-
-    } catch (Exception e) {
-      logger.error("Conversion failed: {}", e.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-          "error", "Conversion failed: " + e.getMessage()));
+    if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+      throw new ServiceException("Rate service returned invalid response");
     }
+
+    Map<String, Object> body = response.getBody();
+    BigDecimal rate = new BigDecimal(((Number) body.get("rate")).toString());
+    BigDecimal amountDecimal = BigDecimal.valueOf(amount);
+    BigDecimal converted = rate.multiply(amountDecimal);
+
+    conversionService.saveConversion(from.toUpperCase(), to.toUpperCase(), amountDecimal, rate, converted);
+
+    return ResponseEntity.ok(new ConvertResponse(
+        from.toUpperCase(), to.toUpperCase(), rate.doubleValue(), amount, converted.doubleValue()));
   }
 }
