@@ -61,10 +61,18 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Added dependencies -->
+
 		<dependency>
-				<groupId>org.springframework.data</groupId>
-				<artifactId>spring-data-relational</artifactId>
-				<version>3.2.5</version> 
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-relational</artifactId>
+			<version>3.2.5</version> 
+		</dependency>
+
+		<!-- Database migration -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
 		</dependency>
 
 	</dependencies>
