@@ -1,31 +1,33 @@
 package com.example.mainservice.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
-
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Table("conversions")
+@Entity
+@Table(name = "conversions")
 public class Conversion {
 
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column("from_currency")
+  @Column(name = "from_currency", nullable = false)
   private String fromCurrency;
 
-  @Column("to_currency")
+  @Column(name = "to_currency", nullable = false)
   private String toCurrency;
 
+  @Column(nullable = false)
   private BigDecimal amount;
+
+  @Column(nullable = false)
   private BigDecimal rate;
 
-  @Column("converted_amount")
+  @Column(name = "converted_amount", nullable = false)
   private BigDecimal convertedAmount;
 
-  @Column("created_at")
+  @Column(name = "created_at", nullable = false)
   private LocalDateTime timestamp;
 
   public Conversion() {
