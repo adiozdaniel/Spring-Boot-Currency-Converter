@@ -3,14 +3,16 @@ package com.example.mainservice.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
-@Table(name = "conversions")
+@Table(name = "conversions", schema = "conversion_schema")
 public class Conversion {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue
+  @Column(name = "id", columnDefinition = "UUID")
+  private UUID id;
 
   @Column(name = "from_currency", nullable = false)
   private String fromCurrency;
@@ -44,11 +46,11 @@ public class Conversion {
   }
 
   // Getters and setters
-  public Long getId() {
+  public UUID getId() {
     return id;
   }
 
-  public void setId(Long id) {
+  public void setId(UUID id) {
     this.id = id;
   }
 
