@@ -1,32 +1,23 @@
 package com.example.rateservice.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConfigurationProperties(prefix = "exchange-rate.api")
 public class ExchangeRateApiConfig {
-  @Value("${exchange-rate.api.key}")
-  private String apiKey;
-
-  @Value("${exchange-rate.api.url}")
-  private String apiUrl;
-
-  @Value("${exchange-rate.api.endpoint:/pair}")
-  private String apiEndpoint;
 
   private String key;
   private String url;
   private String endpoint = "/pair";
 
-  // Getters and setters (required)
+  // Getters and setters
   public String getKey() {
     return key;
   }
 
   public void setKey(String key) {
-    this.key = apiKey;
+    this.key = key;
   }
 
   public String getUrl() {
@@ -34,7 +25,7 @@ public class ExchangeRateApiConfig {
   }
 
   public void setUrl(String url) {
-    this.url = apiUrl;
+    this.url = url;
   }
 
   public String getEndpoint() {
