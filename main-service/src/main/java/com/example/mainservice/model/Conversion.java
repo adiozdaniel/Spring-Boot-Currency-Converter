@@ -1,6 +1,7 @@
 package com.example.mainservice.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
@@ -11,23 +12,32 @@ public class Conversion {
 
   @Id
   private Long id;
+
+  @Column("from_currency")
   private String fromCurrency;
+
+  @Column("to_currency")
   private String toCurrency;
+
   private BigDecimal amount;
   private BigDecimal rate;
-  private BigDecimal result;
+
+  @Column("converted_amount")
+  private BigDecimal convertedAmount;
+
+  @Column("created_at")
   private LocalDateTime timestamp;
 
   public Conversion() {
   }
 
-  public Conversion(String fromCurrency, String toCurrency, BigDecimal amount, BigDecimal rate, BigDecimal result,
-      LocalDateTime timestamp) {
+  public Conversion(String fromCurrency, String toCurrency, BigDecimal amount, BigDecimal rate,
+      BigDecimal convertedAmount, LocalDateTime timestamp) {
     this.fromCurrency = fromCurrency;
     this.toCurrency = toCurrency;
     this.amount = amount;
     this.rate = rate;
-    this.result = result;
+    this.convertedAmount = convertedAmount;
     this.timestamp = timestamp;
   }
 
@@ -72,12 +82,12 @@ public class Conversion {
     this.rate = rate;
   }
 
-  public BigDecimal getResult() {
-    return result;
+  public BigDecimal getConvertedAmount() {
+    return convertedAmount;
   }
 
-  public void setResult(BigDecimal result) {
-    this.result = result;
+  public void setConvertedAmount(BigDecimal convertedAmount) {
+    this.convertedAmount = convertedAmount;
   }
 
   public LocalDateTime getTimestamp() {
