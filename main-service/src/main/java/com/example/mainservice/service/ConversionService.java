@@ -16,9 +16,9 @@ public class ConversionService {
     this.repository = repository;
   }
 
-  public Conversion saveConversion(String from, String to, BigDecimal amount, BigDecimal rate) {
-    BigDecimal result = amount.multiply(rate);
-    Conversion conversion = new Conversion(from, to, amount, rate, result, LocalDateTime.now());
+  public Conversion saveConversion(String from, String to, BigDecimal amount, BigDecimal rate,
+      BigDecimal convertedAmount) {
+    Conversion conversion = new Conversion(from, to, amount, rate, convertedAmount, LocalDateTime.now());
     return repository.save(conversion);
   }
 }
