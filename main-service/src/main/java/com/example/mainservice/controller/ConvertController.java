@@ -53,14 +53,14 @@ public class ConvertController {
       }
 
       Map<String, Object> body = response.getBody();
-      double rate = ((Number) body.get("rate")).doubleValue();
-      double converted = rate * amount;
+      BigDecimal rate = new BigDecimal(((Number) body.get("rate")).toString());
+      BigDecimal amountDecimal = BigDecimal.valueOf(amount);
+      BigDecimal converted = rate.multiply(amountDecimal);
 
-      conversionService.saveConversion(
-          from.toUpperCase(), to.toUpperCase(),
-          BigDecimal.valueOf(amount), BigDecimal.valueOf(rate), BigDecimal.valueOf(converted));
+      conversionService.saveConversion(from.toUpperCase(), to.toUpperCase(), amountDecimal, rate, converted);
+      return ResponseEntity.ok(new ConvertResponse(from.toUpperCase(), to.toUpperCase(), rate.doubleValue(), amount,
+          converted.doubleValue()));
 
-      return ResponseEntity.ok(new ConvertResponse(from.toUpperCase(), to.toUpperCase(), rate, amount, converted));
     } catch (Exception e) {
       logger.error("Conversion failed: {}", e.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
