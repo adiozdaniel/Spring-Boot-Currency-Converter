@@ -23,15 +23,6 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
   }
 
-  // Handle all other exceptions
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<Map<String, String>> handleGlobalException(Exception ex) {
-    logger.error("Unhandled exception occurred: ", ex);
-    Map<String, String> error = new HashMap<>();
-    error.put("error", "Internal server error: " + ex.getMessage());
-    return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-
   // Handle custom service exceptions
   @ExceptionHandler(ServiceException.class)
   public ResponseEntity<Map<String, String>> handleServiceException(ServiceException ex) {
@@ -39,5 +30,14 @@ public class GlobalExceptionHandler {
     Map<String, String> error = new HashMap<>();
     error.put("error", ex.getMessage());
     return new ResponseEntity<>(error, HttpStatus.SERVICE_UNAVAILABLE);
+  }
+
+  // Handle all other exceptions
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<Map<String, String>> handleGlobalException(Exception ex) {
+    logger.error("Unhandled exception occurred: ", ex);
+    Map<String, String> error = new HashMap<>();
+    error.put("error", "Internal server error: " + ex.getMessage());
+    return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
