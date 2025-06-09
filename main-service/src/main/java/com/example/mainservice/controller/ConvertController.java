@@ -3,12 +3,15 @@ package com.example.mainservice.controller;
 import com.example.mainservice.config.RateServiceConfig;
 import com.example.mainservice.dto.ConvertRequest;
 import com.example.mainservice.dto.ConvertResponse;
+import com.example.mainservice.service.ConversionService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -18,10 +21,12 @@ public class ConvertController {
   private static final Logger logger = LoggerFactory.getLogger(ConvertController.class);
   private final RestTemplate restTemplate;
   private final RateServiceConfig config;
+  private final ConversionService conversionService;
 
-  public ConvertController(RestTemplate restTemplate, RateServiceConfig config) {
+  public ConvertController(RestTemplate restTemplate, RateServiceConfig config, ConversionService conversionService) {
     this.restTemplate = restTemplate;
     this.config = config;
+    this.conversionService = conversionService;
   }
 
   @PostMapping
@@ -41,8 +46,8 @@ public class ConvertController {
           url,
           HttpMethod.GET,
           null,
-          new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
-      );
+          new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+          });
       if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
         throw new RuntimeException("Rate service returned invalid response");
       }
@@ -50,6 +55,10 @@ public class ConvertController {
       Map<String, Object> body = response.getBody();
       double rate = ((Number) body.get("rate")).doubleValue();
       double converted = rate * amount;
+
+      conversionService.saveConversion(
+          from.toUpperCase(), to.toUpperCase(),
+          BigDecimal.valueOf(amount), BigDecimal.valueOf(rate), BigDecimal.valueOf(converted));
 
       return ResponseEntity.ok(new ConvertResponse(from.toUpperCase(), to.toUpperCase(), rate, amount, converted));
     } catch (Exception e) {
