@@ -22,4 +22,13 @@ RUN apk update && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     rm -rf /var/cache/apk/*
 
-ENTRYPOINT ["java","-Xmx512m","--add-opens","java.base/jdk.internal.misc=ALL-UNNAMED","--add-opens","java.base/sun.nio.ch=ALL-UNNAMED","-Djava.security.egd=file:/dev/./urandom","-jar","app.jar","--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+# JVM Configuration
+# --add-opens: Required by Netty for direct memory access and async NIO operations
+# -Djava.security.egd: Use /dev/urandom to prevent entropy blocking in containers
+ENTRYPOINT ["java", \
+    "-Xmx512m", \
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", \
+    "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-jar", "app.jar", \
+    "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
