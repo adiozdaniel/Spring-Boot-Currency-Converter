@@ -2,6 +2,8 @@
 
 This document provides comprehensive guidance for setting up Jenkins infrastructure for the Currency Converter microservices.
 
+> **📖 For Jenkinsfile Configuration**: See [CONFIGURATION.md](./CONFIGURATION.md) for details on customizing pipeline parameters (agent labels, Maven versions, deployment environments, etc.)
+
 ## Prerequisites
 
 - Jenkins 2.400+ (LTS recommended)
