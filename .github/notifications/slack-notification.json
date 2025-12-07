@@ -1,0 +1,94 @@
+{
+  "text": "Build Notification",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "🚀 CI/CD Pipeline Notification"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Service:*\n${SERVICE_NAME}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Status:*\n${BUILD_STATUS}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Branch:*\n`${BRANCH_NAME}`"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Commit:*\n`${COMMIT_SHA}`"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Author:*\n${COMMIT_AUTHOR}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Build Number:*\n#${BUILD_NUMBER}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Message:*\n${COMMIT_MESSAGE}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Test Results:*\n✅ Passed: ${TESTS_PASSED}\n❌ Failed: ${TESTS_FAILED}\n⏭️ Skipped: ${TESTS_SKIPPED}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Code Coverage:*\n📊 ${COVERAGE_PERCENTAGE}%"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Build"
+          },
+          "url": "${BUILD_URL}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Commit"
+          },
+          "url": "${COMMIT_URL}"
+        }
+      ]
+    }
+  ]
+}

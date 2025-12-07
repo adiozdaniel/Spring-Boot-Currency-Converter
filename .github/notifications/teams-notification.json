@@ -1,0 +1,83 @@
+{
+  "@type": "MessageCard",
+  "@context": "https://schema.org/extensions",
+  "themeColor": "${THEME_COLOR}",
+  "summary": "CI/CD Pipeline Notification",
+  "sections": [
+    {
+      "activityTitle": "🚀 CI/CD Pipeline Notification",
+      "activitySubtitle": "${SERVICE_NAME}",
+      "activityImage": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+      "facts": [
+        {
+          "name": "Status:",
+          "value": "${BUILD_STATUS}"
+        },
+        {
+          "name": "Branch:",
+          "value": "${BRANCH_NAME}"
+        },
+        {
+          "name": "Commit:",
+          "value": "${COMMIT_SHA}"
+        },
+        {
+          "name": "Author:",
+          "value": "${COMMIT_AUTHOR}"
+        },
+        {
+          "name": "Build Number:",
+          "value": "#${BUILD_NUMBER}"
+        }
+      ],
+      "markdown": true
+    },
+    {
+      "title": "Commit Message",
+      "text": "${COMMIT_MESSAGE}"
+    },
+    {
+      "title": "Test Results",
+      "facts": [
+        {
+          "name": "✅ Passed:",
+          "value": "${TESTS_PASSED}"
+        },
+        {
+          "name": "❌ Failed:",
+          "value": "${TESTS_FAILED}"
+        },
+        {
+          "name": "⏭️ Skipped:",
+          "value": "${TESTS_SKIPPED}"
+        }
+      ]
+    },
+    {
+      "title": "Code Coverage",
+      "text": "📊 ${COVERAGE_PERCENTAGE}%"
+    }
+  ],
+  "potentialAction": [
+    {
+      "@type": "OpenUri",
+      "name": "View Build",
+      "targets": [
+        {
+          "os": "default",
+          "uri": "${BUILD_URL}"
+        }
+      ]
+    },
+    {
+      "@type": "OpenUri",
+      "name": "View Commit",
+      "targets": [
+        {
+          "os": "default",
+          "uri": "${COMMIT_URL}"
+        }
+      ]
+    }
+  ]
+}
