@@ -49,6 +49,8 @@ cd gatling
 
 ## Running Performance Tests
 
+> **Note:** All shell scripts (`.sh` files) in this directory have executable permissions set. If you encounter permission errors, run: `chmod +x performance-tests/jmeter/run-jmeter.sh performance-tests/gatling/run-gatling.sh`
+
 ### JMeter Tests
 
 #### Main Service Load Test
