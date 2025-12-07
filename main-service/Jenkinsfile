@@ -1,0 +1,2 @@
+@Library('global_shared_library@main') _
+runPipeline(agent: 'maven-instances', technology: 'java-17', environment: 'aws', namespace: 'currency-converter', account_name: 'production', mvn_version: 'M390')
