@@ -1,0 +1,114 @@
+# Prometheus Configuration for Currency Converter Services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'currency-converter'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# Load alert rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Main Service
+  - job_name: 'main-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['main-service:8000']
+        labels:
+          application: 'main-service'
+          service: 'currency-converter'
+
+  # Rate Service
+  - job_name: 'rate-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['rate-service:8080']
+        labels:
+          application: 'rate-service'
+          service: 'currency-converter'
+
+  # Kubernetes service discovery (if deployed on Kubernetes)
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - currency-converter
+    relabel_configs:
+      # Only scrape pods with annotation prometheus.io/scrape: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+
+      # Use the port from prometheus.io/port annotation if available
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port, __meta_kubernetes_pod_ip]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+
+      # Use the path from prometheus.io/path annotation or default to /actuator/prometheus
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+        replacement: $1
+
+      # Add pod metadata as labels
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: application
+
+      - source_labels: [__meta_kubernetes_pod_label_version]
+        target_label: version
+
+  # PostgreSQL exporter (if using postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          application: 'postgresql'
+          service: 'database'
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'infrastructure'
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention:
+      time: 15d
+      size: 50GB
+
+# Remote write configuration (optional, for long-term storage)
+# remote_write:
+#   - url: "http://cortex:9009/api/prom/push"
+#   - url: "http://thanos-receive:19291/api/v1/receive"
