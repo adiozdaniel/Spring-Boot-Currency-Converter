@@ -5,15 +5,15 @@ services:
     image: postgres:15-alpine
     container_name: currency-converter-db
     environment:
-      POSTGRES_DB: conversions_database
-      POSTGRES_USER: db_username
-      POSTGRES_PASSWORD: db_password
+      POSTGRES_DB: ${POSTGRES_DB:-conversions_database}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U db_username"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,11 +26,11 @@ services:
       dockerfile: Dockerfile
     container_name: rate-service
     ports:
-      - "8080:8080"
+      - "${RATE_SERVICE_PORT:-8080}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      EXCHANGE_RATE_API_KEY: ${EXCHANGE_RATE_API_KEY}
-      EXCHANGE_RATE_API_URL: ${EXCHANGE_RATE_API_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      EXCHANGE_RATE_API_KEY: ${RATE_SERVICE_API_KEY}
+      EXCHANGE_RATE_API_URL: ${EXCHANGE_RATE_API_URL:-https://api.exchangerate-api.com/v4/latest}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -47,12 +47,12 @@ services:
       dockerfile: Dockerfile
     container_name: main-service
     ports:
-      - "8000:8000"
+      - "${MAIN_SERVICE_PORT:-8000}:8000"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/conversions_database
-      SPRING_DATASOURCE_USERNAME: db_username
-      SPRING_DATASOURCE_PASSWORD: db_password
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-conversions_database}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       RATE_SERVICE_URL: http://rate-service:8080/rate
     depends_on:
       postgres:
