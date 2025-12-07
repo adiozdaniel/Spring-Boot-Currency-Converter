@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: main-service-config
+  namespace: currency-converter
+data:
+  database-url: "jdbc:postgresql://postgres:5432/conversions_database"
+  rate-service-url: "http://rate-service:8080/rate"
+  server-port: "8000"

@@ -1,0 +1,253 @@
+# Alertmanager Configuration for Currency Converter Services
+
+global:
+  # Default SMTP configuration
+  smtp_from: 'alerts@currency-converter.com'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_auth_username: 'alerts@currency-converter.com'
+  smtp_auth_password: '<smtp-password>'
+  smtp_require_tls: true
+
+  # Slack configuration
+  slack_api_url: '<slack-webhook-url>'
+
+  # PagerDuty configuration
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  # Default receiver
+  receiver: 'default-receiver'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity', 'category', 'application']
+
+  # Wait before sending first notification for a group
+  group_wait: 10s
+
+  # Wait before sending notification about new alerts for a group
+  group_interval: 5m
+
+  # Wait before re-sending notification if alert is still firing
+  repeat_interval: 3h
+
+  # Child routes
+  routes:
+    # Critical alerts -> PagerDuty + Slack
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 30m
+      continue: false
+
+    # Warning alerts -> Slack
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      group_interval: 10m
+      repeat_interval: 12h
+      continue: false
+
+    # Business metrics alerts -> Teams
+    - match:
+        category: business
+      receiver: 'business-alerts'
+      group_wait: 1m
+      group_interval: 15m
+      repeat_interval: 24h
+      continue: false
+
+    # Database alerts -> DBA team
+    - match:
+        category: database
+      receiver: 'database-alerts'
+      group_wait: 30s
+      group_interval: 10m
+      repeat_interval: 6h
+      continue: false
+
+    # Kubernetes alerts -> DevOps team
+    - match:
+        category: kubernetes
+      receiver: 'devops-alerts'
+      group_wait: 30s
+      group_interval: 10m
+      repeat_interval: 6h
+      continue: false
+
+# Inhibition rules - suppress certain alerts when others are firing
+inhibit_rules:
+  # Suppress warning alerts if critical alert for same service is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['application', 'instance']
+
+  # Suppress individual service alerts if service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '(HighResponseTime|HighErrorRate|HighMemoryUsage|HighCPUUsage)'
+    equal: ['application', 'instance']
+
+  # Suppress high error rate if service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match:
+      alertname: 'HighErrorRate'
+    equal: ['application']
+
+  # Suppress memory alerts if pod is crash looping
+  - source_match:
+      alertname: 'PodCrashLooping'
+    target_match_re:
+      alertname: '(HighMemoryUsage|CriticalMemoryUsage)'
+    equal: ['pod', 'namespace']
+
+# Receiver configurations
+receivers:
+  # Default receiver - logs only
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://localhost:5001/log-webhook'
+        send_resolved: true
+
+  # Critical alerts -> PagerDuty + Slack
+  - name: 'critical-alerts'
+    pagerduty_configs:
+      - service_key: '<pagerduty-service-key>'
+        severity: 'critical'
+        description: '{{ .GroupLabels.alertname }}: {{ .GroupLabels.application }}'
+        details:
+          firing: '{{ .Alerts.Firing | len }}'
+          resolved: '{{ .Alerts.Resolved | len }}'
+        send_resolved: true
+
+    slack_configs:
+      - channel: '#critical-alerts'
+        username: 'AlertManager'
+        color: 'danger'
+        title: ':rotating_light: Critical Alert'
+        title_link: '{{ template "slack.default.titlelink" . }}'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Service:* {{ .Labels.application }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+    email_configs:
+      - to: 'oncall@currency-converter.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+        send_resolved: true
+
+  # Warning alerts -> Slack
+  - name: 'warning-alerts'
+    slack_configs:
+      - channel: '#alerts'
+        username: 'AlertManager'
+        color: 'warning'
+        title: ':warning: Warning Alert'
+        title_link: '{{ template "slack.default.titlelink" . }}'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Service:* {{ .Labels.application }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  # Business alerts -> Microsoft Teams
+  - name: 'business-alerts'
+    webhook_configs:
+      - url: '<teams-webhook-url>'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+
+    email_configs:
+      - to: 'business-team@currency-converter.com'
+        headers:
+          Subject: '[BUSINESS METRIC] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+        send_resolved: true
+
+  # Database alerts -> DBA team
+  - name: 'database-alerts'
+    slack_configs:
+      - channel: '#database-alerts'
+        username: 'AlertManager'
+        color: 'warning'
+        title: ':database: Database Alert'
+        title_link: '{{ template "slack.default.titlelink" . }}'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Service:* {{ .Labels.application }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+    email_configs:
+      - to: 'dba-team@currency-converter.com'
+        headers:
+          Subject: '[DATABASE] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+        send_resolved: true
+
+  # DevOps alerts -> DevOps team
+  - name: 'devops-alerts'
+    slack_configs:
+      - channel: '#devops-alerts'
+        username: 'AlertManager'
+        color: 'warning'
+        title: ':kubernetes: Kubernetes Alert'
+        title_link: '{{ template "slack.default.titlelink" . }}'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Pod:* {{ .Labels.pod }}
+          *Namespace:* {{ .Labels.namespace }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+    email_configs:
+      - to: 'devops-team@currency-converter.com'
+        headers:
+          Subject: '[KUBERNETES] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+        send_resolved: true
+
+# Time intervals for muting alerts (optional)
+time_intervals:
+  # Mute non-critical alerts during maintenance window
+  - name: maintenance-window
+    time_intervals:
+      - times:
+          - start_time: '02:00'
+            end_time: '04:00'
+        weekdays: ['saturday', 'sunday']
+
+# Mute routes (optional)
+# mute_time_intervals:
+#   - maintenance-window

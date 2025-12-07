@@ -1,0 +1,33 @@
+# Grafana Datasource Provisioning Configuration
+
+apiVersion: 1
+
+# Delete datasources that are not in this list
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
+datasources:
+  # Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    isDefault: true
+    version: 1
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+      queryTimeout: 60s
+      # Enable Exemplars for trace correlation
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo
+      # Prometheus-specific settings
+      prometheusType: Prometheus
+      prometheusVersion: 2.45.0
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
