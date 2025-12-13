@@ -2,6 +2,7 @@ FROM eclipse-temurin:17-jre-alpine
 
 LABEL maintainer="currency-converter-team"
 LABEL service="main-service"
+LABEL java.version="17"
 
 VOLUME /tmp
 
