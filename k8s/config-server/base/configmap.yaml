@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-server-config
+  labels:
+    app: config-server
+data:
+  repo-uri: "https://github.com/your-org/config-repo.git"
+  repo-branch: "main"
+  search-paths: "{application}"
