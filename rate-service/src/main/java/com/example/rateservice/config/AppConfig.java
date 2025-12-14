@@ -13,8 +13,8 @@ public class AppConfig {
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder, ExchangeRateApiConfig apiConfig) {
         return builder
-                .setConnectTimeout(Duration.ofMillis(apiConfig.getTimeout()))
-                .setReadTimeout(Duration.ofMillis(apiConfig.getTimeout()))
+                .setConnectTimeout(Duration.ofMillis(apiConfig.getConnectTimeout()))
+                .setReadTimeout(Duration.ofMillis(apiConfig.getReadTimeout()))
                 .build();
     }
 }
