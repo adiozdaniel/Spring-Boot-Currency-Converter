@@ -10,6 +10,9 @@ public class ExchangeRateApiConfig {
   private String key;
   private String url;
   private String endpoint = "/pair";
+  private int connectTimeout = 5000;
+  private int readTimeout = 10000;
+  private int cacheTtl;
 
   // Getters and setters
   public String getKey() {
@@ -34,5 +37,29 @@ public class ExchangeRateApiConfig {
 
   public void setEndpoint(String endpoint) {
     this.endpoint = endpoint;
+  }
+
+  public int getConnectTimeout() {
+    return connectTimeout;
+  }
+
+  public void setConnectTimeout(int connectTimeout) {
+    this.connectTimeout = connectTimeout;
+  }
+
+  public int getReadTimeout() {
+    return readTimeout;
+  }
+
+  public void setReadTimeout(int readTimeout) {
+    this.readTimeout = readTimeout;
+  }
+
+  public int getCacheTtl() {
+    return cacheTtl;
+  }
+
+  public void setCacheTtl(int cacheTtl) {
+    this.cacheTtl = cacheTtl;
   }
 }

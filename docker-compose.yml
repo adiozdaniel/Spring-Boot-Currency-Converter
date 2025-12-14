@@ -28,7 +28,7 @@ services:
     ports:
       - "${RATE_SERVICE_PORT:-8080}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       EXCHANGE_RATE_API_KEY: ${RATE_SERVICE_API_KEY}
       EXCHANGE_RATE_API_URL: ${EXCHANGE_RATE_API_URL:-https://api.exchangerate-api.com/v4/latest}
     healthcheck:
@@ -49,7 +49,7 @@ services:
     ports:
       - "${MAIN_SERVICE_PORT:-8000}:8000"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-conversions_database}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}

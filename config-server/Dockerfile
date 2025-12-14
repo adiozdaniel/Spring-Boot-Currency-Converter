@@ -1,19 +1,20 @@
+# Config Server Dockerfile
 FROM eclipse-temurin:17-jre-alpine
 
 LABEL maintainer="currency-converter-team"
-LABEL service="main-service"
+LABEL service="config-server"
 LABEL java.version="17"
 
 VOLUME /tmp
 
-EXPOSE 8000
+EXPOSE 8888
 
 WORKDIR /app
 
 ARG SPRING_PROFILES_ACTIVE=development
 ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
 
-COPY target/main-service-0.0.1-SNAPSHOT.jar app.jar
+COPY target/config-server-0.0.1-SNAPSHOT.jar app.jar
 
 ENV TZ=UTC
 
@@ -24,12 +25,11 @@ RUN apk update && \
     rm -rf /var/cache/apk/*
 
 # JVM Configuration
-# --add-opens: Required by Netty for direct memory access and async NIO operations
+# --add-opens: Required by Spring Cloud Config for encryption/decryption operations
 # -Djava.security.egd: Use /dev/urandom to prevent entropy blocking in containers
 # Spring Boot will automatically use SPRING_PROFILES_ACTIVE env var
 ENTRYPOINT ["java", \
     "-Xmx512m", \
-    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", \
-    "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED", \
+    "--add-opens", "java.base/java.lang=ALL-UNNAMED", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-jar", "app.jar"]

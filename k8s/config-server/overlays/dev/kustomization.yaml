@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: currency-converter-dev
+
+bases:
+  - ../../base
+
+commonLabels:
+  environment: dev
+
+replicas:
+  - name: config-server
+    count: 1
+
+images:
+  - name: ghcr.io/adiozdaniel/config-server
+    newTag: dev
+
+patchesStrategicMerge:
+  - deployment-patch.yaml
+
+configMapGenerator:
+  - name: config-server-config
+    behavior: merge
+    literals:
+      - repo-branch=develop
