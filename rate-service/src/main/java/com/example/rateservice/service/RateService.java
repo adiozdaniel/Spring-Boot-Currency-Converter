@@ -37,7 +37,7 @@ public class RateService {
                 .toUriString();
 
         try {
-            logger.debug("Fetching exchange rate from URL: {}", url);
+            logger.debug("Fetching exchange rate from {} to {}", from, to);
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
             // Basic validation on the response
