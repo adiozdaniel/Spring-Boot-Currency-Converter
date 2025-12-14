@@ -38,3 +38,8 @@ build/
 ### Encryption keys (should be in environment variables) ###
 *.jks
 *.keystore
+
+### Environment files ###
+.env
+.env.local
+.env.*.local

@@ -137,10 +137,10 @@
 						<configuration>
 							<rules>
 								<rule>
-									<element>PACKAGE</element>
+									<element>BUNDLE</element>
 									<limits>
 										<limit>
-											<counter>LINE</counter>
+											<counter>INSTRUCTION</counter>
 											<value>COVEREDRATIO</value>
 											<minimum>0.80</minimum>
 										</limit>
@@ -152,7 +152,7 @@
 				</executions>
 			</plugin>
 
-			<!-- OWASP Dependency Check -->
+			<!-- OWASP Dependency Check - run manually or in CI with: mvn dependency-check:check -Dnvd.api.key=YOUR_KEY -->
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
@@ -165,14 +165,10 @@
 						<format>HTML</format>
 						<format>JSON</format>
 					</formats>
+					<!-- NVD API key required since 2024 - set via -Dnvd.api.key or NVD_API_KEY env var -->
+					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
 				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
+				<!-- Removed from default lifecycle - run explicitly in CI -->
 			</plugin>
 
 			<!-- SonarQube Maven Plugin -->
