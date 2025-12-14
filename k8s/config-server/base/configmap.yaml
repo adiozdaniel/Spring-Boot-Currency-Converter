@@ -4,7 +4,11 @@ metadata:
   name: config-server-config
   labels:
     app: config-server
+  annotations:
+    # IMPORTANT: Update repo-uri before deployment - placeholder value will cause startup failure
+    config.kubernetes.io/needs-configuration: "true"
 data:
-  repo-uri: "https://github.com/your-org/config-repo.git"
+  # Replace with actual config repository URL before deploying
+  repo-uri: "https://github.com/adiozdaniel/Spring-Boot-Currency-Converter"
   repo-branch: "main"
   search-paths: "{application}"
