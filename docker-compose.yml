@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: currency-converter-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-conversions_database}
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
@@ -26,11 +26,11 @@ services:
       dockerfile: Dockerfile
     container_name: rate-service
     ports:
-      - "${RATE_SERVICE_PORT:-8080}:8080"
+      - "${RATE_SERVICE_PORT}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EXCHANGE_RATE_API_KEY: ${RATE_SERVICE_API_KEY}
-      EXCHANGE_RATE_API_URL: ${EXCHANGE_RATE_API_URL:-https://api.exchangerate-api.com/v4/latest}
+      EXCHANGE_RATE_API_URL: ${EXCHANGE_RATE_API_URL}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -47,13 +47,13 @@ services:
       dockerfile: Dockerfile
     container_name: main-service
     ports:
-      - "${MAIN_SERVICE_PORT:-8000}:8000"
+      - "${MAIN_SERVICE_PORT}:8000"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-conversions_database}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      RATE_SERVICE_URL: http://rate-service:8080/rate
+      RATE_SERVICE_URL: ${RATE_SERVICE_URL}
     depends_on:
       postgres:
         condition: service_healthy
