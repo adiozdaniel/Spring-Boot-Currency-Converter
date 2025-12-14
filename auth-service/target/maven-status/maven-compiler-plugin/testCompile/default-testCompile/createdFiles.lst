@@ -1,6 +1,0 @@
-com/example/authservice/service/ApiKeyValidatorTest.class
-com/example/authservice/service/AuthenticationServiceTest.class
-com/example/authservice/controller/AuthControllerTest.class
-com/example/authservice/service/RateLimiterServiceTest.class
-com/example/authservice/AuthServiceApplicationTests.class
-com/example/authservice/service/TokenServiceTest.class

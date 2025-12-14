@@ -1,6 +1,0 @@
-/home/myna/Projects/Spring-Boot-Currency-Converter/auth-service/src/test/java/com/example/authservice/AuthServiceApplicationTests.java
-/home/myna/Projects/Spring-Boot-Currency-Converter/auth-service/src/test/java/com/example/authservice/controller/AuthControllerTest.java
-/home/myna/Projects/Spring-Boot-Currency-Converter/auth-service/src/test/java/com/example/authservice/service/ApiKeyValidatorTest.java
-/home/myna/Projects/Spring-Boot-Currency-Converter/auth-service/src/test/java/com/example/authservice/service/AuthenticationServiceTest.java
-/home/myna/Projects/Spring-Boot-Currency-Converter/auth-service/src/test/java/com/example/authservice/service/RateLimiterServiceTest.java
-/home/myna/Projects/Spring-Boot-Currency-Converter/auth-service/src/test/java/com/example/authservice/service/TokenServiceTest.java
