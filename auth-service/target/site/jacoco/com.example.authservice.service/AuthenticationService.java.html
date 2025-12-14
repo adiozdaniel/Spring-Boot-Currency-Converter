@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthenticationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">auth-service</a> &gt; <a href="index.source.html" class="el_package">com.example.authservice.service</a> &gt; <span class="el_source">AuthenticationService.java</span></div><h1>AuthenticationService.java</h1><pre class="source lang-java linenums">package com.example.authservice.service;
+
+import com.example.authservice.config.JwtConfig;
+import com.example.authservice.dto.AuthRequest;
+import com.example.authservice.dto.AuthResponse;
+import com.example.authservice.exception.InvalidApiKeyException;
+import com.example.authservice.exception.InvalidTokenException;
+import com.example.authservice.exception.RateLimitExceededException;
+import io.jsonwebtoken.Claims;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+public class AuthenticationService {
+
+<span class="fc" id="L23">    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);</span>
+
+    private final ApiKeyValidator apiKeyValidator;
+    private final TokenService tokenService;
+    private final RateLimiterService rateLimiterService;
+    private final JwtConfig jwtConfig;
+    private final Counter authSuccessCounter;
+    private final Counter authFailureCounter;
+
+    public AuthenticationService(
+            ApiKeyValidator apiKeyValidator,
+            TokenService tokenService,
+            RateLimiterService rateLimiterService,
+            JwtConfig jwtConfig,
+<span class="fc" id="L37">            MeterRegistry meterRegistry) {</span>
+<span class="fc" id="L38">        this.apiKeyValidator = apiKeyValidator;</span>
+<span class="fc" id="L39">        this.tokenService = tokenService;</span>
+<span class="fc" id="L40">        this.rateLimiterService = rateLimiterService;</span>
+<span class="fc" id="L41">        this.jwtConfig = jwtConfig;</span>
+
+<span class="fc" id="L43">        this.authSuccessCounter = Counter.builder(&quot;auth.attempts&quot;)</span>
+<span class="fc" id="L44">                .tag(&quot;result&quot;, &quot;success&quot;)</span>
+<span class="fc" id="L45">                .description(&quot;Number of successful authentication attempts&quot;)</span>
+<span class="fc" id="L46">                .register(meterRegistry);</span>
+
+<span class="fc" id="L48">        this.authFailureCounter = Counter.builder(&quot;auth.attempts&quot;)</span>
+<span class="fc" id="L49">                .tag(&quot;result&quot;, &quot;failure&quot;)</span>
+<span class="fc" id="L50">                .description(&quot;Number of failed authentication attempts&quot;)</span>
+<span class="fc" id="L51">                .register(meterRegistry);</span>
+<span class="fc" id="L52">    }</span>
+
+    public AuthResponse authenticate(AuthRequest request, String clientIp) {
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        String rateLimitKey = clientIp != null ? clientIp : &quot;unknown&quot;;</span>
+
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (!rateLimiterService.tryConsume(rateLimitKey)) {</span>
+<span class="fc" id="L58">            authFailureCounter.increment();</span>
+<span class="fc" id="L59">            throw new RateLimitExceededException();</span>
+        }
+
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (!apiKeyValidator.isValid(request.getApiKey())) {</span>
+<span class="fc" id="L63">            authFailureCounter.increment();</span>
+<span class="fc" id="L64">            logger.warn(&quot;Authentication failed - invalid API key from IP: {}&quot;, clientIp);</span>
+<span class="fc" id="L65">            throw new InvalidApiKeyException();</span>
+        }
+
+<span class="fc" id="L68">        String clientType = apiKeyValidator.getClientType(request.getApiKey());</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        String clientId = request.getClientId() != null ? request.getClientId() : UUID.randomUUID().toString();</span>
+
+<span class="fc" id="L71">        Map&lt;String, Object&gt; additionalClaims = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L72">        additionalClaims.put(&quot;ip&quot;, clientIp);</span>
+
+<span class="fc" id="L74">        String accessToken = tokenService.generateAccessToken(clientId, clientType, additionalClaims);</span>
+<span class="fc" id="L75">        String refreshToken = tokenService.generateRefreshToken(clientId, clientType);</span>
+
+<span class="fc" id="L77">        authSuccessCounter.increment();</span>
+<span class="fc" id="L78">        logger.info(&quot;Authentication successful for client: {} (type: {})&quot;, clientId, clientType);</span>
+
+<span class="fc" id="L80">        return new AuthResponse(</span>
+                accessToken,
+                refreshToken,
+                &quot;Bearer&quot;,
+<span class="fc" id="L84">                jwtConfig.getExpiration() / 1000</span>
+        );
+    }
+
+    public AuthResponse refreshToken(String refreshToken) {
+<span class="fc" id="L89">        Claims claims = tokenService.validateRefreshToken(refreshToken);</span>
+
+<span class="fc" id="L91">        String clientId = claims.getSubject();</span>
+<span class="fc" id="L92">        String clientType = claims.get(&quot;clientType&quot;, String.class);</span>
+
+<span class="fc" id="L94">        tokenService.revokeToken(refreshToken);</span>
+
+<span class="fc" id="L96">        String newAccessToken = tokenService.generateAccessToken(clientId, clientType, null);</span>
+<span class="fc" id="L97">        String newRefreshToken = tokenService.generateRefreshToken(clientId, clientType);</span>
+
+<span class="fc" id="L99">        logger.info(&quot;Token refreshed for client: {}&quot;, clientId);</span>
+
+<span class="fc" id="L101">        return new AuthResponse(</span>
+                newAccessToken,
+                newRefreshToken,
+                &quot;Bearer&quot;,
+<span class="fc" id="L105">                jwtConfig.getExpiration() / 1000</span>
+        );
+    }
+
+    public void revokeToken(String token) {
+<span class="fc" id="L110">        tokenService.revokeToken(token);</span>
+<span class="fc" id="L111">        logger.info(&quot;Token revoked successfully&quot;);</span>
+<span class="fc" id="L112">    }</span>
+
+    public Map&lt;String, Object&gt; validateToken(String token) {
+<span class="fc" id="L115">        Claims claims = tokenService.validateToken(token);</span>
+
+<span class="fc" id="L117">        Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L118">        result.put(&quot;valid&quot;, true);</span>
+<span class="fc" id="L119">        result.put(&quot;subject&quot;, claims.getSubject());</span>
+<span class="fc" id="L120">        result.put(&quot;clientType&quot;, claims.get(&quot;clientType&quot;));</span>
+<span class="fc" id="L121">        result.put(&quot;expiresAt&quot;, claims.getExpiration());</span>
+<span class="fc" id="L122">        result.put(&quot;issuedAt&quot;, claims.getIssuedAt());</span>
+
+<span class="fc" id="L124">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

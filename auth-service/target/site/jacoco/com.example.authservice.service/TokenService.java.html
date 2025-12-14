@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">auth-service</a> &gt; <a href="index.source.html" class="el_package">com.example.authservice.service</a> &gt; <span class="el_source">TokenService.java</span></div><h1>TokenService.java</h1><pre class="source lang-java linenums">package com.example.authservice.service;
+
+import com.example.authservice.config.JwtConfig;
+import com.example.authservice.exception.InvalidTokenException;
+import com.example.authservice.exception.TokenRevokedException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Service
+public class TokenService {
+
+<span class="fc" id="L26">    private static final Logger logger = LoggerFactory.getLogger(TokenService.class);</span>
+
+    private final JwtConfig jwtConfig;
+<span class="fc" id="L29">    private final Set&lt;String&gt; revokedTokens = ConcurrentHashMap.newKeySet();</span>
+
+<span class="fc" id="L31">    public TokenService(JwtConfig jwtConfig) {</span>
+<span class="fc" id="L32">        this.jwtConfig = jwtConfig;</span>
+<span class="fc" id="L33">    }</span>
+
+    public String generateAccessToken(String clientId, String clientType, Map&lt;String, Object&gt; additionalClaims) {
+<span class="fc" id="L36">        Date now = new Date();</span>
+<span class="fc" id="L37">        Date expiry = new Date(now.getTime() + jwtConfig.getExpiration());</span>
+
+<span class="fc" id="L39">        var builder = Jwts.builder()</span>
+<span class="fc" id="L40">                .id(UUID.randomUUID().toString())</span>
+<span class="fc" id="L41">                .subject(clientId)</span>
+<span class="fc" id="L42">                .claim(&quot;type&quot;, &quot;access&quot;)</span>
+<span class="fc" id="L43">                .claim(&quot;clientType&quot;, clientType)</span>
+<span class="fc" id="L44">                .issuedAt(now)</span>
+<span class="fc" id="L45">                .expiration(expiry);</span>
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (additionalClaims != null) {</span>
+<span class="fc" id="L48">            additionalClaims.forEach(builder::claim);</span>
+        }
+
+<span class="fc" id="L51">        return builder.signWith(getSigningKey()).compact();</span>
+    }
+
+    public String generateRefreshToken(String clientId, String clientType) {
+<span class="fc" id="L55">        Date now = new Date();</span>
+<span class="fc" id="L56">        Date expiry = new Date(now.getTime() + jwtConfig.getRefreshExpiration());</span>
+
+<span class="fc" id="L58">        return Jwts.builder()</span>
+<span class="fc" id="L59">                .id(UUID.randomUUID().toString())</span>
+<span class="fc" id="L60">                .subject(clientId)</span>
+<span class="fc" id="L61">                .claim(&quot;type&quot;, &quot;refresh&quot;)</span>
+<span class="fc" id="L62">                .claim(&quot;clientType&quot;, clientType)</span>
+<span class="fc" id="L63">                .issuedAt(now)</span>
+<span class="fc" id="L64">                .expiration(expiry)</span>
+<span class="fc" id="L65">                .signWith(getSigningKey())</span>
+<span class="fc" id="L66">                .compact();</span>
+    }
+
+    public Claims validateToken(String token) {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (isRevoked(token)) {</span>
+<span class="fc" id="L71">            throw new TokenRevokedException(&quot;Token has been revoked&quot;);</span>
+        }
+
+        try {
+<span class="fc" id="L75">            return Jwts.parser()</span>
+<span class="fc" id="L76">                    .verifyWith(getSigningKey())</span>
+<span class="fc" id="L77">                    .build()</span>
+<span class="fc" id="L78">                    .parseSignedClaims(token)</span>
+<span class="fc" id="L79">                    .getPayload();</span>
+<span class="nc" id="L80">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L81">            logger.warn(&quot;Token expired: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L82">            throw new InvalidTokenException(&quot;Token has expired&quot;);</span>
+<span class="fc" id="L83">        } catch (JwtException e) {</span>
+<span class="fc" id="L84">            logger.warn(&quot;Invalid token: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L85">            throw new InvalidTokenException(&quot;Invalid token&quot;);</span>
+        }
+    }
+
+    public Claims validateRefreshToken(String token) {
+<span class="fc" id="L90">        Claims claims = validateToken(token);</span>
+
+<span class="fc" id="L92">        String tokenType = claims.get(&quot;type&quot;, String.class);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (!&quot;refresh&quot;.equals(tokenType)) {</span>
+<span class="fc" id="L94">            throw new InvalidTokenException(&quot;Invalid refresh token&quot;);</span>
+        }
+
+<span class="fc" id="L97">        return claims;</span>
+    }
+
+    public void revokeToken(String token) {
+        try {
+<span class="fc" id="L102">            Claims claims = Jwts.parser()</span>
+<span class="fc" id="L103">                    .verifyWith(getSigningKey())</span>
+<span class="fc" id="L104">                    .build()</span>
+<span class="fc" id="L105">                    .parseSignedClaims(token)</span>
+<span class="fc" id="L106">                    .getPayload();</span>
+
+<span class="fc" id="L108">            String jti = claims.getId();</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">            if (jti != null) {</span>
+<span class="fc" id="L110">                revokedTokens.add(jti);</span>
+<span class="fc" id="L111">                logger.info(&quot;Token revoked: {}&quot;, jti);</span>
+            }
+<span class="nc" id="L113">        } catch (JwtException e) {</span>
+<span class="nc" id="L114">            logger.warn(&quot;Failed to revoke token: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L115">        }</span>
+<span class="fc" id="L116">    }</span>
+
+    public boolean isRevoked(String token) {
+        try {
+<span class="fc" id="L120">            Claims claims = Jwts.parser()</span>
+<span class="fc" id="L121">                    .verifyWith(getSigningKey())</span>
+<span class="fc" id="L122">                    .build()</span>
+<span class="fc" id="L123">                    .parseSignedClaims(token)</span>
+<span class="fc" id="L124">                    .getPayload();</span>
+
+<span class="fc" id="L126">            String jti = claims.getId();</span>
+<span class="pc bpc" id="L127" title="1 of 4 branches missed.">            return jti != null &amp;&amp; revokedTokens.contains(jti);</span>
+<span class="fc" id="L128">        } catch (JwtException e) {</span>
+<span class="fc" id="L129">            return false;</span>
+        }
+    }
+
+    public String extractSubject(String token) {
+<span class="fc" id="L134">        return validateToken(token).getSubject();</span>
+    }
+
+    public String extractClientType(String token) {
+<span class="fc" id="L138">        return validateToken(token).get(&quot;clientType&quot;, String.class);</span>
+    }
+
+    private SecretKey getSigningKey() {
+<span class="fc" id="L142">        byte[] keyBytes = jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8);</span>
+<span class="fc" id="L143">        return Keys.hmacShaKeyFor(keyBytes);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
