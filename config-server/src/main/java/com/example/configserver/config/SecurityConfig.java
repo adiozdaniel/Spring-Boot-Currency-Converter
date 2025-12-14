@@ -18,10 +18,10 @@ import org.springframework.beans.factory.annotation.Value;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${config.server.username:config-user}")
+    @Value("${config.server.username}")
     private String username;
 
-    @Value("${config.server.password:changeme}")
+    @Value("${config.server.password}")
     private String password;
 
     @Bean
