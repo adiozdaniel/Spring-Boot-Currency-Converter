@@ -1,3 +1,6 @@
 # application configuration
 application.yml
 .env
+
+# Maven build directories
+**/target/

@@ -1,18 +1,18 @@
-name: Rate Service CI/CD
+name: Auth Service CI/CD
 
 on:
   push:
     branches: [master, develop]
     paths:
-      - 'rate-service/**'
-      - '.github/workflows/rate-service-ci.yml'
+      - 'auth-service/**'
+      - '.github/workflows/auth-service-ci.yml'
   pull_request:
     branches: [master, develop]
     paths:
-      - 'rate-service/**'
+      - 'auth-service/**'
 
 env:
-  SERVICE_NAME: rate-service
+  SERVICE_NAME: auth-service
   JAVA_VERSION: 17
   REGISTRY: ghcr.io
 
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./rate-service
+        working-directory: ./auth-service
 
     steps:
       - name: Checkout code
@@ -40,15 +40,15 @@ jobs:
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rate-service-jar
-          path: rate-service/target/*.jar
+          name: auth-service-jar
+          path: auth-service/target/*.jar
           retention-days: 1
 
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./rate-service
+        working-directory: ./auth-service
 
     steps:
       - name: Checkout code
@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: rate-service/target/site/jacoco/
+          path: auth-service/target/site/jacoco/
           retention-days: 7
 
   security-scan:
@@ -88,14 +88,14 @@ jobs:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
-          name: rate-service-jar
-          path: rate-service/target
+          name: auth-service-jar
+          path: auth-service/target
 
       - name: Build Docker image
         run: |
           docker build -t ${{ env.SERVICE_NAME }}:${{ github.sha }} \
-            -f rate-service/Dockerfile \
-            rate-service/
+            -f auth-service/Dockerfile \
+            auth-service/
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -124,8 +124,8 @@ jobs:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
-          name: rate-service-jar
-          path: rate-service/target
+          name: auth-service-jar
+          path: auth-service/target
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -147,8 +147,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./rate-service
-          file: ./rate-service/Dockerfile
+          context: ./auth-service
+          file: ./auth-service/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
