@@ -1,0 +1,13 @@
+target/
+!target/*.jar
+.mvn/wrapper/maven-wrapper.jar
+.git
+.gitignore
+*.md
+Jenkinsfile
+k8s/
+.idea
+*.iml
+.vscode
+.DS_Store
+*.log

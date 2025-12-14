@@ -1,0 +1,23 @@
+// Jenkinsfile for Rate Service
+// This pipeline uses a shared library for standardized build processes
+//
+// Prerequisites:
+// 1. Jenkins shared library 'global_shared_library' must be configured
+// 2. Jenkins agent with label matching JENKINS_AGENT must exist
+// 3. Maven version matching MAVEN_VERSION must be installed on Jenkins
+//
+// Configuration can be customized via Jenkins job parameters or environment variables
+
+@Library('global_shared_library@main') _
+
+// Pipeline parameters - customize these for your Jenkins environment
+def pipelineConfig = [
+    agent: env.JENKINS_AGENT ?: 'maven-instances',           // Jenkins agent label (default: maven-instances)
+    technology: 'java-17',                                   // Java version to use
+    environment: env.DEPLOYMENT_ENV ?: 'aws',                // Deployment environment (aws, azure, gcp, on-prem)
+    namespace: env.K8S_NAMESPACE ?: 'currency-converter',    // Kubernetes namespace
+    account_name: env.ACCOUNT_NAME ?: 'production',          // Cloud account/environment name
+    mvn_version: env.MAVEN_VERSION ?: 'M390'                 // Maven version identifier in Jenkins
+]
+
+runPipeline(pipelineConfig)

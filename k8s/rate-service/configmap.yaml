@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-service-config
+  namespace: currency-converter
+data:
+  api-url: "https://v6.exchangerate-api.com/v6"
+  server-port: "8080"

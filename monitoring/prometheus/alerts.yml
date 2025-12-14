@@ -1,0 +1,246 @@
+# Prometheus Alert Rules for Currency Converter Services
+
+groups:
+  - name: service_availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"main-service|rate-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: HighServiceRestartRate
+        expr: rate(process_uptime_seconds[5m]) < 0
+        for: 5m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.application }} is restarting frequently"
+          description: "Service {{ $labels.application }} has restarted {{ $value }} times in the last 5 minutes."
+
+  - name: performance
+    interval: 30s
+    rules:
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{uri!~"/actuator.*"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High response time on {{ $labels.application }}"
+          description: "95th percentile response time for {{ $labels.uri }} is {{ $value }}s (threshold: 1s)."
+
+      - alert: CriticalResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{uri!~"/actuator.*"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical response time on {{ $labels.application }}"
+          description: "95th percentile response time for {{ $labels.uri }} is {{ $value }}s (threshold: 2s)."
+
+      - alert: HighRequestRate
+        expr: rate(http_server_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High request rate on {{ $labels.application }}"
+          description: "Request rate is {{ $value }} requests/sec on {{ $labels.application }}."
+
+  - name: errors
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_total{status=~"5.."}[5m]) / rate(http_server_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "High error rate on {{ $labels.application }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.application }} for {{ $labels.uri }}."
+
+      - alert: CriticalErrorRate
+        expr: rate(http_server_requests_total{status=~"5.."}[5m]) / rate(http_server_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "Critical error rate on {{ $labels.application }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.application }} for {{ $labels.uri }}."
+
+      - alert: TooManyClientErrors
+        expr: rate(http_server_requests_total{status=~"4.."}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "High client error rate on {{ $labels.application }}"
+          description: "Client error rate is {{ $value }} requests/sec on {{ $labels.application }}."
+
+  - name: jvm_memory
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High memory usage on {{ $labels.application }}"
+          description: "JVM heap memory usage is {{ $value | humanizePercentage }} on {{ $labels.application }}."
+
+      - alert: CriticalMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical memory usage on {{ $labels.application }}"
+          description: "JVM heap memory usage is {{ $value | humanizePercentage }} on {{ $labels.application }}. OOM imminent."
+
+      - alert: FrequentGarbageCollection
+        expr: rate(jvm_gc_pause_seconds_count[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Frequent GC on {{ $labels.application }}"
+          description: "Garbage collection rate is {{ $value }} collections/sec on {{ $labels.application }}."
+
+      - alert: LongGarbageCollectionPauses
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) / rate(jvm_gc_pause_seconds_count[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Long GC pauses on {{ $labels.application }}"
+          description: "Average GC pause time is {{ $value }}s on {{ $labels.application }}."
+
+  - name: system_resources
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: system_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High CPU usage on {{ $labels.application }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.application }}."
+
+      - alert: CriticalCPUUsage
+        expr: system_cpu_usage > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.application }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.application }}."
+
+      - alert: HighThreadCount
+        expr: jvm_threads_live > 200
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High thread count on {{ $labels.application }}"
+          description: "Thread count is {{ $value }} on {{ $labels.application }}."
+
+  - name: database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Connection pool usage is {{ $value | humanizePercentage }} on {{ $labels.application }}."
+
+      - alert: SlowDatabaseQueries
+        expr: rate(hikaricp_connections_acquire_seconds_sum[5m]) / rate(hikaricp_connections_acquire_seconds_count[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Slow database connection acquisition"
+          description: "Average time to acquire database connection is {{ $value }}s on {{ $labels.application }}."
+
+  - name: business_metrics
+    interval: 30s
+    rules:
+      - alert: LowConversionRate
+        expr: rate(currency_conversion_requests_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Low conversion request rate"
+          description: "Conversion request rate is {{ $value }} requests/sec, which is unusually low."
+
+      - alert: HighCacheMissRate
+        expr: rate(exchange_rate_cache_misses[5m]) / (rate(exchange_rate_cache_hits[5m]) + rate(exchange_rate_cache_misses[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "High cache miss rate on rate service"
+          description: "Cache miss rate is {{ $value | humanizePercentage }}, indicating potential caching issues."
+
+  - name: kubernetes
+    interval: 30s
+    rules:
+      - alert: PodRestartingFrequently
+        expr: rate(kube_pod_container_status_restarts_total{namespace="currency-converter"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: "Pod {{ $labels.pod }} is restarting frequently"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in the last 15 minutes."
+
+      - alert: PodCrashLooping
+        expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff",namespace="currency-converter"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          category: kubernetes
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is in CrashLoopBackOff state."
+
+      - alert: PodNotReady
+        expr: kube_pod_status_ready{condition="false",namespace="currency-converter"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          category: kubernetes
+        annotations:
+          summary: "Pod {{ $labels.pod }} is not ready"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been not ready for more than 5 minutes."

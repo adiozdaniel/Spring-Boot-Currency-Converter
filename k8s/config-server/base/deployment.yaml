@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  labels:
+    app: config-server
+    tier: infrastructure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+        tier: infrastructure
+    spec:
+      containers:
+      - name: config-server
+        image: ghcr.io/adiozdaniel/config-server:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8888
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "production"
+        - name: CONFIG_SERVER_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: config-server-secret
+              key: username
+        - name: CONFIG_SERVER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: config-server-secret
+              key: password
+        - name: ENCRYPT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: config-server-secret
+              key: encrypt-key
+        - name: CONFIG_REPO_URI
+          valueFrom:
+            configMapKeyRef:
+              name: config-server-config
+              key: repo-uri
+        - name: CONFIG_REPO_BRANCH
+          valueFrom:
+            configMapKeyRef:
+              name: config-server-config
+              key: repo-branch
+        - name: CONFIG_REPO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: config-server-secret
+              key: repo-username
+              optional: true
+        - name: CONFIG_REPO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: config-server-secret
+              key: repo-password
+              optional: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8888
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8888
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config-volume
+        emptyDir: {}

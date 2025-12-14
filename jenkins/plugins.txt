@@ -1,0 +1,69 @@
+# Jenkins Required Plugins
+# Install via: jenkins-plugin-cli --plugin-file plugins.txt
+
+# Core Pipeline
+workflow-aggregator:latest
+pipeline-stage-view:latest
+pipeline-model-definition:latest
+pipeline-graph-analysis:latest
+
+# Source Control
+git:latest
+github:latest
+github-branch-source:latest
+
+# Credentials & Authentication
+credentials-binding:latest
+ssh-agent:latest
+plain-credentials:latest
+
+# Build Tools
+maven-plugin:latest
+pipeline-maven:latest
+
+# Code Quality & Security
+sonar:latest
+dependency-check-jenkins-plugin:latest
+jacoco:latest
+warnings-ng:latest
+
+# Containerization & Orchestration
+docker-workflow:latest
+docker-plugin:latest
+kubernetes:latest
+kubernetes-cli:latest
+kubernetes-credentials:latest
+
+# Notifications
+slack:latest
+email-ext:latest
+mailer:latest
+
+# Reporting & Testing
+htmlpublisher:latest
+junit:latest
+performance:latest
+gatling:latest
+
+# Utilities
+timestamper:latest
+build-timeout:latest
+ws-cleanup:latest
+pipeline-utility-steps:latest
+ansicolor:latest
+copyartifact:latest
+
+# Security & Governance
+role-strategy:latest
+matrix-auth:latest
+audit-trail:latest
+
+# Monitoring
+prometheus:latest
+monitoring:latest
+
+# Job DSL (for seed jobs)
+job-dsl:latest
+
+# Blue Ocean (optional, modern UI)
+blueocean:latest
