@@ -27,9 +27,9 @@ RUN apk update && \
 # JVM Configuration
 # --add-opens: Required by Spring Cloud Config for encryption/decryption operations
 # -Djava.security.egd: Use /dev/urandom to prevent entropy blocking in containers
+# Spring Boot will automatically use SPRING_PROFILES_ACTIVE env var
 ENTRYPOINT ["java", \
     "-Xmx512m", \
     "--add-opens", "java.base/java.lang=ALL-UNNAMED", \
     "-Djava.security.egd=file:/dev/./urandom", \
-    "-jar", "app.jar", \
-    "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+    "-jar", "app.jar"]
