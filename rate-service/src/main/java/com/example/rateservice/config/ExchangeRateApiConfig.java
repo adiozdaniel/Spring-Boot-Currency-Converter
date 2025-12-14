@@ -9,9 +9,9 @@ public class ExchangeRateApiConfig {
 
   private String key;
   private String url;
-  private String endpoint = "/pair";
-  private int connectTimeout = 5000;
-  private int readTimeout = 10000;
+  private String endpoint;
+  private int connectTimeout;
+  private int readTimeout;
   private int cacheTtl;
 
   // Getters and setters
