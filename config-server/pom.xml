@@ -21,6 +21,13 @@
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<jacoco.version>0.8.11</jacoco.version>
 		<dependency-check.version>9.0.7</dependency-check.version>
+		<!-- SonarQube Coverage Exclusions -->
+		<sonar.exclusions>
+			**/config/**/*.java
+		</sonar.exclusions>
+		<sonar.coverage.exclusions>
+			**/config/**/*.java
+		</sonar.coverage.exclusions>
 	</properties>
 
 	<dependencies>
@@ -150,6 +157,11 @@
 						</configuration>
 					</execution>
 				</executions>
+				<configuration>
+					<excludes>
+						<exclude>**/config/**</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 
 			<!-- OWASP Dependency Check - run manually or in CI with: mvn dependency-check:check -Dnvd.api.key=YOUR_KEY -->
