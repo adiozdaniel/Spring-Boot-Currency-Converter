@@ -78,8 +78,9 @@ public class AuthEventProducer {
                 .success(true)
                 .build();
 
-        sendToTopic(loginSuccessTopic, clientId, event);
-        sendToTopic(authEventsTopic, clientId, event);
+        String sanitizedKey = sanitizeClientId(clientId);
+        sendToTopic(loginSuccessTopic, sanitizedKey, event);
+        sendToTopic(authEventsTopic, sanitizedKey, event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -98,9 +99,9 @@ public class AuthEventProducer {
                 .failureReason(sanitizeFailureReason(reason))
                 .build();
 
-        String key = clientId != null ? clientId : ipAddress;
-        sendToTopic(loginFailedTopic, key, event);
-        sendToTopic(authEventsTopic, key, event);
+        String sanitizedKey = clientId != null ? sanitizeClientId(clientId) : maskIpAddress(ipAddress);
+        sendToTopic(loginFailedTopic, sanitizedKey, event);
+        sendToTopic(authEventsTopic, sanitizedKey, event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -116,8 +117,9 @@ public class AuthEventProducer {
                 .failureReason("Invalid API key")
                 .build();
 
-        sendToTopic(loginFailedTopic, ipAddress, event);
-        sendToTopic(authEventsTopic, ipAddress, event);
+        String sanitizedKey = maskIpAddress(ipAddress);
+        sendToTopic(loginFailedTopic, sanitizedKey, event);
+        sendToTopic(authEventsTopic, sanitizedKey, event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -134,9 +136,9 @@ public class AuthEventProducer {
                 .failureReason("Rate limit exceeded")
                 .build();
 
-        String key = clientId != null ? clientId : ipAddress;
-        sendToTopic(loginFailedTopic, key, event);
-        sendToTopic(authEventsTopic, key, event);
+        String sanitizedKey = clientId != null ? sanitizeClientId(clientId) : maskIpAddress(ipAddress);
+        sendToTopic(loginFailedTopic, sanitizedKey, event);
+        sendToTopic(authEventsTopic, sanitizedKey, event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -153,7 +155,7 @@ public class AuthEventProducer {
                 .ipAddress(maskIpAddress(ipAddress))
                 .build();
 
-        sendToTopic(tokensTopic, clientId, event);
+        sendToTopic(tokensTopic, sanitizeClientId(clientId), event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -170,7 +172,7 @@ public class AuthEventProducer {
                 .ipAddress(maskIpAddress(ipAddress))
                 .build();
 
-        sendToTopic(tokensTopic, clientId, event);
+        sendToTopic(tokensTopic, sanitizeClientId(clientId), event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -185,7 +187,7 @@ public class AuthEventProducer {
                 .clientId(sanitizeClientId(clientId))
                 .build();
 
-        sendToTopic(tokensTopic, clientId, event);
+        sendToTopic(tokensTopic, sanitizeClientId(clientId), event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -200,7 +202,7 @@ public class AuthEventProducer {
                 .clientId(sanitizeClientId(clientId))
                 .build();
 
-        sendToTopic(tokensTopic, clientId, event);
+        sendToTopic(tokensTopic, sanitizeClientId(clientId), event);
     }
 
     @Async("kafkaAsyncExecutor")
@@ -220,13 +222,15 @@ public class AuthEventProducer {
                 .metadata(event.getMetadata())
                 .build();
 
-        String key = event.getClientId() != null ? event.getClientId() : event.getIpAddress();
-        sendToTopic(authEventsTopic, key, sanitizedEvent);
+        String sanitizedKey = event.getClientId() != null
+                ? sanitizeClientId(event.getClientId())
+                : maskIpAddress(event.getIpAddress());
+        sendToTopic(authEventsTopic, sanitizedKey, sanitizedEvent);
 
         if (event.isSuccess()) {
-            sendToTopic(loginSuccessTopic, key, sanitizedEvent);
+            sendToTopic(loginSuccessTopic, sanitizedKey, sanitizedEvent);
         } else {
-            sendToTopic(loginFailedTopic, key, sanitizedEvent);
+            sendToTopic(loginFailedTopic, sanitizedKey, sanitizedEvent);
         }
     }
 
@@ -299,6 +303,9 @@ public class AuthEventProducer {
             String[] parts = ipAddress.split(":");
             if (parts.length >= 4) {
                 return parts[0] + ":" + parts[1] + ":" + parts[2] + ":xxxx:xxxx:xxxx";
+            } else {
+                // For compressed or short IPv6 (e.g., ::1), return a fully masked placeholder
+                return "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx";
             }
         }
         return ipAddress;
