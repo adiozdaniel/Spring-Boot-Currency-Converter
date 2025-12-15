@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthEventProducer Tests")
@@ -72,7 +71,7 @@ class AuthEventProducerTest {
         // When
         authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
 
-        // Then
+        // Then - key is now sanitized (client-123 has no @ so remains unchanged)
         verify(kafkaTemplate, times(2)).send(anyString(), eq(clientId), any(AuthEvent.class));
 
         ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
@@ -120,15 +119,16 @@ class AuthEventProducerTest {
     void shouldPublishInvalidApiKeyEvent() {
         // Given
         String ipAddress = "192.168.1.1";
+        String maskedIp = "192.168.1.xxx";
 
         // When
         authEventProducer.publishInvalidApiKey(ipAddress);
 
-        // Then
-        verify(kafkaTemplate, times(2)).send(anyString(), eq(ipAddress), any(AuthEvent.class));
+        // Then - key is now masked IP
+        verify(kafkaTemplate, times(2)).send(anyString(), eq(maskedIp), any(AuthEvent.class));
 
         ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
-        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(ipAddress), eventCaptor.capture());
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(maskedIp), eventCaptor.capture());
 
         AuthEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(AuthEventType.INVALID_API_KEY);
@@ -289,16 +289,17 @@ class AuthEventProducerTest {
     }
 
     @Test
-    @DisplayName("Should use IP address as key when clientId is null")
-    void shouldUseIpAddressAsKeyWhenClientIdIsNull() {
+    @DisplayName("Should use masked IP address as key when clientId is null")
+    void shouldUseMaskedIpAddressAsKeyWhenClientIdIsNull() {
         // Given
         String ipAddress = "192.168.1.1";
+        String maskedIp = "192.168.1.xxx";
 
         // When
         authEventProducer.publishRateLimitExceeded(null, ipAddress);
 
-        // Then
-        verify(kafkaTemplate, times(2)).send(anyString(), eq(ipAddress), any(AuthEvent.class));
+        // Then - key is now masked IP
+        verify(kafkaTemplate, times(2)).send(anyString(), eq(maskedIp), any(AuthEvent.class));
     }
 
     @Test
@@ -325,15 +326,16 @@ class AuthEventProducerTest {
     void shouldMaskEmailInClientIdForPiiFiltering() {
         // Given
         String clientId = "user@example.com";
+        String maskedClientId = "use***@example.com";
         String clientType = "web";
         String ipAddress = "192.168.1.1";
 
         // When
         authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
 
-        // Then
+        // Then - key is also masked
         ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
-        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(clientId), eventCaptor.capture());
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(maskedClientId), eventCaptor.capture());
 
         AuthEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getClientId()).isEqualTo("use***@example.com");
@@ -471,5 +473,40 @@ class AuthEventProducerTest {
 
         AuthEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
+    }
+
+    @Test
+    @DisplayName("Should mask compressed IPv6 addresses")
+    void shouldMaskCompressedIpv6Addresses() {
+        // Given
+        String clientId = "client-123";
+        String clientType = "web";
+        String ipAddress = "::1"; // Compressed IPv6 loopback
+
+        // When
+        authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
+
+        // Then
+        ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        AuthEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx");
+    }
+
+    @Test
+    @DisplayName("Should use sanitized key when publishing email clientId")
+    void shouldUseSanitizedKeyWhenPublishingEmailClientId() {
+        // Given
+        String clientId = "user@example.com";
+        String maskedClientId = "use***@example.com";
+        String clientType = "web";
+        String ipAddress = "192.168.1.1";
+
+        // When
+        authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
+
+        // Then - key should be sanitized
+        verify(kafkaTemplate, times(2)).send(anyString(), eq(maskedClientId), any(AuthEvent.class));
     }
 }
