@@ -114,7 +114,7 @@ class AuthControllerTest {
         RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
         AuthResponse response = new AuthResponse("new-access-token", "new-refresh-token", "Bearer", 3600);
 
-        when(authenticationService.refreshToken(anyString())).thenReturn(response);
+        when(authenticationService.refreshToken(anyString(), anyString())).thenReturn(response);
 
         mockMvc.perform(post("/auth/refresh")
                         .with(csrf())

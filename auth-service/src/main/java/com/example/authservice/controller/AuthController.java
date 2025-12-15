@@ -40,10 +40,12 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(
-            @Valid @RequestBody RefreshTokenRequest request) {
+            @Valid @RequestBody RefreshTokenRequest request,
+            HttpServletRequest httpRequest) {
 
-        logger.info("Token refresh request");
-        AuthResponse response = authenticationService.refreshToken(request.getRefreshToken());
+        String clientIp = getClientIp(httpRequest);
+        logger.info("Token refresh request from IP: {}", clientIp);
+        AuthResponse response = authenticationService.refreshToken(request.getRefreshToken(), clientIp);
         return ResponseEntity.ok(response);
     }
 

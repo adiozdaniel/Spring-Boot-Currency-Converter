@@ -47,11 +47,14 @@ class AuthenticationServiceTest {
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
         lenient().when(jwtConfig.getExpiration()).thenReturn(3600000L);
+        lenient().when(tokenService.extractTokenId(anyString())).thenReturn("token-id-123");
+        lenient().when(tokenService.extractSubject(anyString())).thenReturn("client-123");
 
         authenticationService = new AuthenticationService(
                 apiKeyValidator,
                 tokenService,
                 rateLimiterService,
+                null, // AuthEventProducer not needed for tests
                 jwtConfig,
                 meterRegistry
         );
@@ -273,6 +276,7 @@ class AuthenticationServiceTest {
         String oldRefreshToken = "old-refresh-token";
         String clientId = "client-123";
         String clientType = "web";
+        String clientIp = "192.168.1.1";
 
         Claims claims = mock(Claims.class);
         when(claims.getSubject()).thenReturn(clientId);
@@ -285,7 +289,7 @@ class AuthenticationServiceTest {
                 .thenReturn("new-refresh-token");
 
         // When
-        AuthResponse response = authenticationService.refreshToken(oldRefreshToken);
+        AuthResponse response = authenticationService.refreshToken(oldRefreshToken, clientIp);
 
         // Then
         assertThat(response).isNotNull();
@@ -307,6 +311,7 @@ class AuthenticationServiceTest {
         String oldRefreshToken = "old-refresh-token";
         String clientId = "client-123";
         String clientType = "mobile";
+        String clientIp = "192.168.1.1";
 
         Claims claims = mock(Claims.class);
         when(claims.getSubject()).thenReturn(clientId);
@@ -319,7 +324,7 @@ class AuthenticationServiceTest {
                 .thenReturn("new-refresh-token");
 
         // When
-        authenticationService.refreshToken(oldRefreshToken);
+        authenticationService.refreshToken(oldRefreshToken, clientIp);
 
         // Then
         verify(tokenService).revokeToken(oldRefreshToken);

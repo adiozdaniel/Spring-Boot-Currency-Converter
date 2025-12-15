@@ -1,0 +1,67 @@
+{
+  "type": "record",
+  "name": "TokenEvent",
+  "namespace": "com.example.authservice.avro",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "doc": "Unique identifier for the event"
+    },
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "TokenEventType",
+        "symbols": [
+          "GENERATED",
+          "REFRESHED",
+          "REVOKED",
+          "VALIDATED",
+          "EXPIRED"
+        ]
+      },
+      "doc": "Type of token event"
+    },
+    {
+      "name": "tokenId",
+      "type": "string",
+      "doc": "Token identifier (JTI claim)"
+    },
+    {
+      "name": "clientId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Client identifier"
+    },
+    {
+      "name": "clientType",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Type of client (web, mobile, platform)"
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Event timestamp in milliseconds"
+    },
+    {
+      "name": "tokenExpiry",
+      "type": ["null", {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }],
+      "default": null,
+      "doc": "Token expiration timestamp"
+    },
+    {
+      "name": "ipAddress",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "IP address of the request"
+    }
+  ]
+}

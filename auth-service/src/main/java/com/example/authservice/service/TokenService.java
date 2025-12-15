@@ -138,6 +138,19 @@ public class TokenService {
         return validateToken(token).get("clientType", String.class);
     }
 
+    public String extractTokenId(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.getId();
+        } catch (JwtException e) {
+            return null;
+        }
+    }
+
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);

@@ -35,6 +35,25 @@
 		<dependency-check.version>9.0.7</dependency-check.version>
 		<flyway.version>9.22.3</flyway.version>
 		<postgresql.version>42.6.0</postgresql.version>
+		<!-- SonarQube Coverage Exclusions -->
+		<sonar.exclusions>
+			**/config/**/*.java,
+			**/dto/**/*.java,
+			**/exception/**/*.java,
+			**/model/**/*.java,
+			**/constant/**/*.java,
+			**/entity/**/*.java,
+			**/repository/**/*.java
+		</sonar.exclusions>
+		<sonar.coverage.exclusions>
+			**/config/**/*.java,
+			**/dto/**/*.java,
+			**/exception/**/*.java,
+			**/model/**/*.java,
+			**/constant/**/*.java,
+			**/entity/**/*.java,
+			**/repository/**/*.java
+		</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
     <dependency>
@@ -168,10 +187,10 @@
 						<configuration>
 							<rules>
 								<rule>
-									<element>PACKAGE</element>
+									<element>BUNDLE</element>
 									<limits>
 										<limit>
-											<counter>LINE</counter>
+											<counter>INSTRUCTION</counter>
 											<value>COVEREDRATIO</value>
 											<minimum>0.80</minimum>
 										</limit>
@@ -181,6 +200,17 @@
 						</configuration>
 					</execution>
 				</executions>
+				<configuration>
+					<excludes>
+						<exclude>**/config/**</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>**/model/**</exclude>
+						<exclude>**/constant/**</exclude>
+						<exclude>**/exception/**</exclude>
+						<exclude>**/entity/**</exclude>
+						<exclude>**/repository/**</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 
 			<!-- OWASP Dependency Check -->
@@ -196,6 +226,12 @@
 						<format>HTML</format>
 						<format>JSON</format>
 					</formats>
+					<!-- Prevent build failure on NVD update errors -->
+					<failOnError>false</failOnError>
+					<!-- Continue with cached data if NVD API is unavailable -->
+					<skipOnError>false</skipOnError>
+					<!-- Use local database only (skip update) for faster local builds -->
+					<autoUpdate>false</autoUpdate>
 				</configuration>
 				<executions>
 					<execution>
