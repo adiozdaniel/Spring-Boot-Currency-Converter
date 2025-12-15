@@ -37,7 +37,7 @@
 		<sonar.exclusions>
 			**/config/**/*.java,
 			**/dto/**/*.java,
-			**/exception/**/*.java
+			**/exception/**/*.java,
 			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
@@ -46,7 +46,7 @@
 		<sonar.coverage.exclusions>
 			**/config/**/*.java,
 			**/dto/**/*.java,
-			**/exception/**/*.java
+			**/exception/**/*.java,
 			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,

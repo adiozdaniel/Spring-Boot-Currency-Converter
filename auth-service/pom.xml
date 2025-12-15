@@ -33,7 +33,6 @@
 			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
-			**/exception/**/*.java,
 			**/repository/**/*.java
 		</sonar.exclusions>
 		<sonar.coverage.exclusions>
@@ -44,7 +43,6 @@
 			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
-			**/exception/**/*.java,
 			**/repository/**/*.java
 		</sonar.coverage.exclusions>
 	</properties>
