@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthEventProducer Tests")
@@ -45,11 +46,19 @@ class AuthEventProducerTest {
         ReflectionTestUtils.setField(authEventProducer, "loginSuccessTopic", "auth.login.success");
         ReflectionTestUtils.setField(authEventProducer, "loginFailedTopic", "auth.login.failed");
         ReflectionTestUtils.setField(authEventProducer, "tokensTopic", "auth.tokens");
+        ReflectionTestUtils.setField(authEventProducer, "dlqTopic", "auth.dlq");
         ReflectionTestUtils.setField(authEventProducer, "kafkaEnabled", true);
 
         // Mock kafka template to return completed future
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(null);
+        @SuppressWarnings("unchecked")
+        SendResult<String, Object> mockSendResult = mock(SendResult.class);
+        org.apache.kafka.clients.producer.RecordMetadata mockMetadata =
+            new org.apache.kafka.clients.producer.RecordMetadata(
+                new org.apache.kafka.common.TopicPartition("test", 0), 0, 0, 0, 0, 0);
+        when(mockSendResult.getRecordMetadata()).thenReturn(mockMetadata);
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mockSendResult);
         when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
+        when(kafkaTemplate.send(anyString(), isNull(), any())).thenReturn(future);
     }
 
     @Test
@@ -75,7 +84,7 @@ class AuthEventProducerTest {
         assertThat(capturedEvent.getEventType()).isEqualTo(AuthEventType.LOGIN_SUCCESS);
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
         assertThat(capturedEvent.getClientType()).isEqualTo(clientType);
-        assertThat(capturedEvent.getIpAddress()).isEqualTo(ipAddress);
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("192.168.1.xxx"); // PII masked
         assertThat(capturedEvent.isSuccess()).isTrue();
     }
 
@@ -101,7 +110,7 @@ class AuthEventProducerTest {
         assertThat(capturedEvent.getEventType()).isEqualTo(AuthEventType.LOGIN_FAILED);
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
         assertThat(capturedEvent.getClientType()).isEqualTo(clientType);
-        assertThat(capturedEvent.getIpAddress()).isEqualTo(ipAddress);
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("192.168.1.xxx"); // PII masked
         assertThat(capturedEvent.isSuccess()).isFalse();
         assertThat(capturedEvent.getFailureReason()).isEqualTo(reason);
     }
@@ -123,7 +132,7 @@ class AuthEventProducerTest {
 
         AuthEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(AuthEventType.INVALID_API_KEY);
-        assertThat(capturedEvent.getIpAddress()).isEqualTo(ipAddress);
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("192.168.1.xxx"); // PII masked
         assertThat(capturedEvent.isSuccess()).isFalse();
         assertThat(capturedEvent.getFailureReason()).isEqualTo("Invalid API key");
     }
@@ -147,7 +156,7 @@ class AuthEventProducerTest {
         AuthEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(AuthEventType.RATE_LIMIT_EXCEEDED);
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
-        assertThat(capturedEvent.getIpAddress()).isEqualTo(ipAddress);
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("192.168.1.xxx"); // PII masked
         assertThat(capturedEvent.isSuccess()).isFalse();
         assertThat(capturedEvent.getFailureReason()).isEqualTo("Rate limit exceeded");
     }
@@ -172,10 +181,10 @@ class AuthEventProducerTest {
 
         TokenEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(TokenEvent.TokenEventType.GENERATED);
-        assertThat(capturedEvent.getTokenId()).isEqualTo(tokenId);
+        assertThat(capturedEvent.getTokenId()).isEqualTo("toke...-123"); // Token masked
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
         assertThat(capturedEvent.getClientType()).isEqualTo(clientType);
-        assertThat(capturedEvent.getIpAddress()).isEqualTo(ipAddress);
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("192.168.1.xxx"); // IP masked
     }
 
     @Test
@@ -198,7 +207,7 @@ class AuthEventProducerTest {
 
         TokenEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(TokenEvent.TokenEventType.REFRESHED);
-        assertThat(capturedEvent.getTokenId()).isEqualTo(tokenId);
+        assertThat(capturedEvent.getTokenId()).isEqualTo("toke...-123"); // Token masked
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
     }
 
@@ -220,7 +229,7 @@ class AuthEventProducerTest {
 
         TokenEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(TokenEvent.TokenEventType.REVOKED);
-        assertThat(capturedEvent.getTokenId()).isEqualTo(tokenId);
+        assertThat(capturedEvent.getTokenId()).isEqualTo("toke...-123"); // Token masked
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
     }
 
@@ -242,7 +251,7 @@ class AuthEventProducerTest {
 
         TokenEvent capturedEvent = eventCaptor.getValue();
         assertThat(capturedEvent.getEventType()).isEqualTo(TokenEvent.TokenEventType.VALIDATED);
-        assertThat(capturedEvent.getTokenId()).isEqualTo(tokenId);
+        assertThat(capturedEvent.getTokenId()).isEqualTo("toke...-123"); // Token masked
         assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
     }
 
@@ -260,8 +269,8 @@ class AuthEventProducerTest {
         // When
         authEventProducer.publishAuthEvent(event);
 
-        // Then
-        verify(kafkaTemplate, times(2)).send(anyString(), eq("client-123"), eq(event));
+        // Then - verify sanitized event is sent (not the original event)
+        verify(kafkaTemplate, times(2)).send(anyString(), eq("client-123"), any(AuthEvent.class));
     }
 
     @Test
@@ -290,5 +299,177 @@ class AuthEventProducerTest {
 
         // Then
         verify(kafkaTemplate, times(2)).send(anyString(), eq(ipAddress), any(AuthEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should mask IPv4 address for PII filtering")
+    void shouldMaskIpv4AddressForPiiFiltering() {
+        // Given
+        String clientId = "client-123";
+        String clientType = "web";
+        String ipAddress = "192.168.1.100";
+
+        // When
+        authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
+
+        // Then
+        ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        AuthEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getIpAddress()).isEqualTo("192.168.1.xxx");
+    }
+
+    @Test
+    @DisplayName("Should mask email in clientId for PII filtering")
+    void shouldMaskEmailInClientIdForPiiFiltering() {
+        // Given
+        String clientId = "user@example.com";
+        String clientType = "web";
+        String ipAddress = "192.168.1.1";
+
+        // When
+        authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
+
+        // Then
+        ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        AuthEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getClientId()).isEqualTo("use***@example.com");
+    }
+
+    @Test
+    @DisplayName("Should mask token ID for PII filtering")
+    void shouldMaskTokenIdForPiiFiltering() {
+        // Given
+        String tokenId = "abcd1234efgh5678ijkl";
+        String clientId = "client-123";
+
+        // When
+        authEventProducer.publishTokenGenerated(tokenId, clientId, "web", "192.168.1.1");
+
+        // Then
+        ArgumentCaptor<TokenEvent> eventCaptor = ArgumentCaptor.forClass(TokenEvent.class);
+        verify(kafkaTemplate).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        TokenEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getTokenId()).isEqualTo("abcd...ijkl");
+    }
+
+    @Test
+    @DisplayName("Should sanitize failure reason containing sensitive data")
+    void shouldSanitizeFailureReasonContainingSensitiveData() {
+        // Given
+        String clientId = "client-123";
+        String reason = "Invalid password=secret123 for user";
+
+        // When
+        authEventProducer.publishLoginFailed(clientId, "web", "192.168.1.1", reason);
+
+        // Then
+        ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        AuthEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getFailureReason()).isEqualTo("Invalid password=*** for user");
+    }
+
+    @Test
+    @DisplayName("Should handle null values gracefully in PII filtering")
+    void shouldHandleNullValuesGracefullyInPiiFiltering() {
+        // Given
+        AuthEvent event = AuthEvent.builder()
+                .eventType(AuthEventType.LOGIN_FAILED)
+                .clientId(null)
+                .ipAddress(null)
+                .success(false)
+                .failureReason(null)
+                .build();
+
+        // When
+        authEventProducer.publishAuthEvent(event);
+
+        // Then
+        ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), isNull(), eventCaptor.capture());
+
+        AuthEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getClientId()).isNull();
+        assertThat(capturedEvent.getIpAddress()).isNull();
+        assertThat(capturedEvent.getFailureReason()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should send to DLQ when publishing fails")
+    void shouldSendToDlqWhenPublishingFails() {
+        // Given
+        ReflectionTestUtils.setField(authEventProducer, "dlqTopic", "auth.dlq");
+
+        CompletableFuture<SendResult<String, Object>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("Kafka connection failed"));
+
+        when(kafkaTemplate.send(eq("auth.login.success"), anyString(), any()))
+                .thenReturn(failedFuture);
+        when(kafkaTemplate.send(eq("auth.events"), anyString(), any()))
+                .thenReturn(failedFuture);
+        when(kafkaTemplate.send(eq("auth.dlq"), anyString(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        // When
+        authEventProducer.publishLoginSuccess("client-123", "web", "192.168.1.1");
+
+        // Then - verify DLQ was called after failure
+        verify(kafkaTemplate, timeout(1000).atLeastOnce()).send(eq("auth.dlq"), anyString(), any(AuthEventProducer.DlqEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should increment metrics counters on publish")
+    void shouldIncrementMetricsCountersOnPublish() {
+        // Given
+        String clientId = "client-123";
+
+        // When
+        authEventProducer.publishLoginSuccess(clientId, "web", "192.168.1.1");
+
+        // Then
+        assertThat(meterRegistry.find("auth.events.published").counter()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should mask short token ID")
+    void shouldMaskShortTokenId() {
+        // Given
+        String tokenId = "abc";
+        String clientId = "client-123";
+
+        // When
+        authEventProducer.publishTokenGenerated(tokenId, clientId, "web", "192.168.1.1");
+
+        // Then
+        ArgumentCaptor<TokenEvent> eventCaptor = ArgumentCaptor.forClass(TokenEvent.class);
+        verify(kafkaTemplate).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        TokenEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getTokenId()).isEqualTo("***");
+    }
+
+    @Test
+    @DisplayName("Should keep UUID client ID unchanged")
+    void shouldKeepUuidClientIdUnchanged() {
+        // Given
+        String clientId = "550e8400-e29b-41d4-a716-446655440000";
+        String clientType = "web";
+        String ipAddress = "192.168.1.1";
+
+        // When
+        authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress);
+
+        // Then
+        ArgumentCaptor<AuthEvent> eventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+        verify(kafkaTemplate, atLeastOnce()).send(anyString(), eq(clientId), eventCaptor.capture());
+
+        AuthEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.getClientId()).isEqualTo(clientId);
     }
 }
