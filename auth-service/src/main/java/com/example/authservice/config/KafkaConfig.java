@@ -4,6 +4,8 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -14,13 +16,17 @@ import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.retry.annotation.EnableRetry;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@EnableRetry
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(KafkaConfig.class);
 
     @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -77,6 +83,22 @@ public class KafkaConfig {
     @Value("${kafka.topics.auth-tokens.partitions:6}")
     private int authTokensPartitions;
 
+    @Value("${kafka.topics.auth-dlq.name:auth.dlq}")
+    private String authDlqTopicName;
+
+    // Retry configuration
+    @Value("${kafka.producer.retries:3}")
+    private int producerRetries;
+
+    @Value("${kafka.producer.retry-backoff-ms:1000}")
+    private int retryBackoffMs;
+
+    @Value("${kafka.producer.delivery-timeout-ms:120000}")
+    private int deliveryTimeoutMs;
+
+    @Value("${kafka.producer.request-timeout-ms:30000}")
+    private int requestTimeoutMs;
+
     @Bean
     public KafkaAdmin kafkaAdmin() {
         Map<String, Object> configs = new HashMap<>();
@@ -92,16 +114,28 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
-        // Performance optimizations
+        // Delivery guarantees - at-least-once with idempotent producer
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
-        configProps.put(ProducerConfig.RETRIES_CONFIG, 3);
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+
+        // Retry configuration with exponential backoff
+        configProps.put(ProducerConfig.RETRIES_CONFIG, producerRetries);
+        configProps.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, retryBackoffMs);
+        configProps.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeoutMs);
+        configProps.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeoutMs);
+
+        // Performance optimizations
         configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
         configProps.put(ProducerConfig.LINGER_MS_CONFIG, 5);
         configProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
-        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        configProps.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
+
+        // Max in-flight requests for ordering guarantee with idempotence
+        configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
 
         addSecurityConfig(configProps);
 
+        logger.info("Kafka producer configured with bootstrap servers: {}", bootstrapServers);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
@@ -147,6 +181,16 @@ public class KafkaConfig {
                 .partitions(authTokensPartitions)
                 .replicas(authEventsReplicationFactor)
                 .config("retention.ms", "604800000") // 7 days
+                .config("cleanup.policy", "delete")
+                .build();
+    }
+
+    @Bean
+    public NewTopic authDlqTopic() {
+        return TopicBuilder.name(authDlqTopicName)
+                .partitions(1)
+                .replicas(authEventsReplicationFactor)
+                .config("retention.ms", "2592000000") // 30 days for DLQ
                 .config("cleanup.policy", "delete")
                 .build();
     }
