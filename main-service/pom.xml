@@ -274,7 +274,7 @@
 					<!-- Prevent build failure on NVD update errors -->
 					<failOnError>false</failOnError>
 					<!-- Continue with cached data if NVD API is unavailable -->
-					<skipOnError>false</skipOnError>
+					<!-- <skipOnError>false</skipOnError> -->
 					<!-- Use local database only (skip update) for faster local builds -->
 					<autoUpdate>false</autoUpdate>
 				</configuration>

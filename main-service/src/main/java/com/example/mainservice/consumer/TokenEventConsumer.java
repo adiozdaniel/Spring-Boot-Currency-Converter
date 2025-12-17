@@ -54,11 +54,14 @@ public class TokenEventConsumer {
                                 @Header(KafkaHeaders.OFFSET) long offset) {
 
         eventProcessingTimer.record(() -> {
+            // Validate event
+            validateTokenEvent(event, partition, offset);
+
             log.info("Received token event: type={}, clientId={}, tokenId={}, key={}, partition={}, offset={}",
                     event.getEventType(), event.getClientId(), event.getTokenId(), key, partition, offset);
 
-            // Check idempotency
-            if (idempotencyService.isEventProcessed(event.getEventId())) {
+            // Atomic idempotency check-and-mark to prevent race conditions
+            if (idempotencyService.checkAndMarkProcessed(event.getEventId())) {
                 log.warn("Duplicate token event detected: {}, skipping processing", event.getEventId());
                 eventsDuplicateCounter.increment();
                 return;
@@ -66,10 +69,10 @@ public class TokenEventConsumer {
 
             try {
                 processTokenEvent(event);
-                idempotencyService.markEventAsProcessed(event.getEventId());
                 eventsProcessedCounter.increment();
             } catch (Exception e) {
-                log.error("Error processing token event: {}", event, e);
+                log.error("Error processing token event: eventId={}, type={}, clientId={}",
+                        event.getEventId(), event.getEventType(), event.getClientId(), e);
                 throw e; // Re-throw to trigger retry/DLQ
             }
         });
@@ -100,6 +103,50 @@ public class TokenEventConsumer {
                 break;
             default:
                 log.warn("Unhandled token event type: {}", eventType);
+        }
+    }
+
+    /**
+     * Validates the TokenEvent to ensure all required fields are present.
+     *
+     * @param event the token event to validate
+     * @param partition the Kafka partition
+     * @param offset the Kafka offset
+     * @throws IllegalArgumentException if validation fails
+     */
+    private void validateTokenEvent(TokenEvent event, int partition, long offset) {
+        if (event == null) {
+            String errorMsg = String.format("Received null TokenEvent from partition=%d, offset=%d", partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getEventId() == null || event.getEventId().trim().isEmpty()) {
+            String errorMsg = String.format("TokenEvent missing eventId: partition=%d, offset=%d, event=%s",
+                    partition, offset, event);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getEventType() == null) {
+            String errorMsg = String.format("TokenEvent missing eventType: eventId=%s, partition=%d, offset=%d",
+                    event.getEventId(), partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getClientId() == null || event.getClientId().trim().isEmpty()) {
+            String errorMsg = String.format("TokenEvent missing clientId: eventId=%s, type=%s, partition=%d, offset=%d",
+                    event.getEventId(), event.getEventType(), partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getTokenId() == null || event.getTokenId().trim().isEmpty()) {
+            String errorMsg = String.format("TokenEvent missing tokenId: eventId=%s, clientId=%s, type=%s, partition=%d, offset=%d",
+                    event.getEventId(), event.getClientId(), event.getEventType(), partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
         }
     }
 }

@@ -382,12 +382,12 @@ class SessionManagementServiceTest {
 
     @Test
     @DisplayName("Should unlock expired lock automatically")
-    void testIsSessionLocked_UnlocksExpiredLock() throws InterruptedException {
+    void testIsSessionLocked_UnlocksExpiredLock() {
         // Arrange
         String clientId = "client-auto-unlock";
 
-        // Set very short lock duration for testing
-        ReflectionTestUtils.setField(sessionManagementService, "lockDurationSeconds", 1L);
+        // Set lock duration to 0 so it's immediately expired
+        ReflectionTestUtils.setField(sessionManagementService, "lockDurationSeconds", 0L);
 
         AuthEvent event = AuthEvent.builder()
                 .eventId("event-unlock")
@@ -405,19 +405,18 @@ class SessionManagementServiceTest {
             sessionManagementService.handleLoginFailure(event);
         }
 
-        // Verify locked
-        assertTrue(sessionManagementService.isSessionLocked(clientId));
+        // Verify account was locked
+        Optional<UserSession> lockedSession = sessionManagementService.getSession(clientId);
+        assertTrue(lockedSession.isPresent());
+        assertTrue(lockedSession.get().isLocked());
 
-        // Wait for lock to expire
-        Thread.sleep(1100);
-
-        // Assert - lock should be auto-unlocked
+        // Assert - lock should be auto-unlocked when checked (since duration is 0)
         assertFalse(sessionManagementService.isSessionLocked(clientId));
 
-        // Verify session is marked as unlocked
-        Optional<UserSession> session = sessionManagementService.getSession(clientId);
-        assertTrue(session.isPresent());
-        assertFalse(session.get().isLocked());
+        // Verify session is now marked as unlocked
+        Optional<UserSession> unlockedSession = sessionManagementService.getSession(clientId);
+        assertTrue(unlockedSession.isPresent());
+        assertFalse(unlockedSession.get().isLocked());
     }
 
     @Test

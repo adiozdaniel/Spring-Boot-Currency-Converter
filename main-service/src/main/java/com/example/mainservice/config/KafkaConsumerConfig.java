@@ -49,6 +49,9 @@ public class KafkaConsumerConfig {
     @Value("${kafka.consumer.concurrency:3}")
     private Integer concurrency;
 
+    @Value("${kafka.topics.auth-dlq}")
+    private String authDlqTopic;
+
     private Map<String, Object> baseConsumerConfig() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -91,7 +94,7 @@ public class KafkaConsumerConfig {
 
         ConcurrentKafkaListenerContainerFactory<String, AuthEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(authEventConsumerFactory());
+        factory.setConsumerFactory(authEventConsumerFactory);
         factory.setConcurrency(concurrency);
         factory.getContainerProperties().setAckMode(org.springframework.kafka.listener.ContainerProperties.AckMode.RECORD);
 
@@ -102,7 +105,7 @@ public class KafkaConsumerConfig {
                             consumerRecord.value(), exception);
                     // Send to DLQ
                     String key = consumerRecord.key() != null ? consumerRecord.key().toString() : null;
-                    kafkaTemplate.send("auth.dlq", key, consumerRecord.value());
+                    kafkaTemplate.send(authDlqTopic, key, consumerRecord.value());
                 },
                 new FixedBackOff(1000L, 3L) // 3 retries with 1 second delay
         );
@@ -118,7 +121,7 @@ public class KafkaConsumerConfig {
 
         ConcurrentKafkaListenerContainerFactory<String, TokenEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(tokenEventConsumerFactory());
+        factory.setConsumerFactory(tokenEventConsumerFactory);
         factory.setConcurrency(concurrency);
         factory.getContainerProperties().setAckMode(org.springframework.kafka.listener.ContainerProperties.AckMode.RECORD);
 
@@ -129,7 +132,7 @@ public class KafkaConsumerConfig {
                             consumerRecord.value(), exception);
                     // Send to DLQ
                     String key = consumerRecord.key() != null ? consumerRecord.key().toString() : null;
-                    kafkaTemplate.send("auth.dlq", key, consumerRecord.value());
+                    kafkaTemplate.send(authDlqTopic, key, consumerRecord.value());
                 },
                 new FixedBackOff(1000L, 3L) // 3 retries with 1 second delay
         );

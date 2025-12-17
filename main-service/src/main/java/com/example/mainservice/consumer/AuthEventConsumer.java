@@ -15,6 +15,8 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Consumer;
+
 @Slf4j
 @Component
 @ConditionalOnProperty(value = "kafka.enabled", havingValue = "true", matchIfMissing = false)
@@ -53,27 +55,12 @@ public class AuthEventConsumer {
                                @Header(KafkaHeaders.RECEIVED_KEY) String key,
                                @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
                                @Header(KafkaHeaders.OFFSET) long offset) {
-
-        eventProcessingTimer.record(() -> {
-            log.info("Received auth event: type={}, clientId={}, key={}, partition={}, offset={}",
-                    event.getEventType(), event.getClientId(), key, partition, offset);
-
-            // Check idempotency
-            if (idempotencyService.isEventProcessed(event.getEventId())) {
-                log.warn("Duplicate event detected: {}, skipping processing", event.getEventId());
-                eventsDuplicateCounter.increment();
-                return;
-            }
-
-            try {
-                processAuthEvent(event);
-                idempotencyService.markEventAsProcessed(event.getEventId());
-                eventsProcessedCounter.increment();
-            } catch (Exception e) {
-                log.error("Error processing auth event: {}", event, e);
-                throw e; // Re-throw to trigger retry/DLQ
-            }
-        });
+        processEvent(event, partition, offset,
+                String.format("Received auth event: type=%s, clientId=%s, key=%s, partition=%d, offset=%d",
+                        event != null ? event.getEventType() : null,
+                        event != null ? event.getClientId() : null,
+                        key, partition, offset),
+                this::processAuthEvent);
     }
 
     @KafkaListener(
@@ -85,27 +72,10 @@ public class AuthEventConsumer {
                                   @Header(KafkaHeaders.RECEIVED_KEY) String clientId,
                                   @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
                                   @Header(KafkaHeaders.OFFSET) long offset) {
-
-        eventProcessingTimer.record(() -> {
-            log.info("Received login success event: clientId={}, partition={}, offset={}",
-                    clientId, partition, offset);
-
-            // Check idempotency
-            if (idempotencyService.isEventProcessed(event.getEventId())) {
-                log.warn("Duplicate event detected: {}, skipping processing", event.getEventId());
-                eventsDuplicateCounter.increment();
-                return;
-            }
-
-            try {
-                sessionManagementService.handleLoginSuccess(event);
-                idempotencyService.markEventAsProcessed(event.getEventId());
-                eventsProcessedCounter.increment();
-            } catch (Exception e) {
-                log.error("Error processing login success event: {}", event, e);
-                throw e;
-            }
-        });
+        processEvent(event, partition, offset,
+                String.format("Received login success event: clientId=%s, partition=%d, offset=%d",
+                        clientId, partition, offset),
+                sessionManagementService::handleLoginSuccess);
     }
 
     @KafkaListener(
@@ -117,24 +87,40 @@ public class AuthEventConsumer {
                                   @Header(KafkaHeaders.RECEIVED_KEY) String clientId,
                                   @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
                                   @Header(KafkaHeaders.OFFSET) long offset) {
+        processEvent(event, partition, offset,
+                String.format("Received login failure event: clientId=%s, partition=%d, offset=%d",
+                        clientId, partition, offset),
+                sessionManagementService::handleLoginFailure);
+    }
 
+    /**
+     * Common event processing logic with validation, idempotency, metrics, and error handling.
+     *
+     * @param event the auth event to process
+     * @param partition the Kafka partition
+     * @param offset the Kafka offset
+     * @param logMessage the log message to display when receiving the event
+     * @param processor the event processing logic to execute
+     */
+    private void processEvent(AuthEvent event, int partition, long offset,
+                              String logMessage, Consumer<AuthEvent> processor) {
         eventProcessingTimer.record(() -> {
-            log.info("Received login failure event: clientId={}, partition={}, offset={}",
-                    clientId, partition, offset);
+            validateAuthEvent(event, partition, offset);
 
-            // Check idempotency
-            if (idempotencyService.isEventProcessed(event.getEventId())) {
+            log.info(logMessage);
+
+            if (idempotencyService.checkAndMarkProcessed(event.getEventId())) {
                 log.warn("Duplicate event detected: {}, skipping processing", event.getEventId());
                 eventsDuplicateCounter.increment();
                 return;
             }
 
             try {
-                sessionManagementService.handleLoginFailure(event);
-                idempotencyService.markEventAsProcessed(event.getEventId());
+                processor.accept(event);
                 eventsProcessedCounter.increment();
             } catch (Exception e) {
-                log.error("Error processing login failure event: {}", event, e);
+                log.error("Error processing auth event: eventId={}, type={}, clientId={}",
+                        event.getEventId(), event.getEventType(), event.getClientId(), e);
                 throw e;
             }
         });
@@ -153,13 +139,49 @@ public class AuthEventConsumer {
             case RATE_LIMIT_EXCEEDED:
             case INVALID_API_KEY:
             case INVALID_TOKEN:
-                // Handle security events
                 log.warn("Security event detected: type={}, clientId={}, ip={}",
                         eventType, event.getClientId(), event.getIpAddress());
                 sessionManagementService.handleLoginFailure(event);
                 break;
             default:
                 log.debug("Unhandled auth event type: {}", eventType);
+        }
+    }
+
+    /**
+     * Validates the AuthEvent to ensure all required fields are present.
+     *
+     * @param event the auth event to validate
+     * @param partition the Kafka partition
+     * @param offset the Kafka offset
+     * @throws IllegalArgumentException if validation fails
+     */
+    private void validateAuthEvent(AuthEvent event, int partition, long offset) {
+        if (event == null) {
+            String errorMsg = String.format("Received null AuthEvent from partition=%d, offset=%d", partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getEventId() == null || event.getEventId().trim().isEmpty()) {
+            String errorMsg = String.format("AuthEvent missing eventId: partition=%d, offset=%d, clientId=%s",
+                    partition, offset, event.getClientId());
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getEventType() == null) {
+            String errorMsg = String.format("AuthEvent missing eventType: eventId=%s, partition=%d, offset=%d",
+                    event.getEventId(), partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        if (event.getClientId() == null || event.getClientId().trim().isEmpty()) {
+            String errorMsg = String.format("AuthEvent missing clientId: eventId=%s, type=%s, partition=%d, offset=%d",
+                    event.getEventId(), event.getEventType(), partition, offset);
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
         }
     }
 }

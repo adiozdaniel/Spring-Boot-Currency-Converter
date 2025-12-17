@@ -52,15 +52,14 @@ class AuthEventConsumerTest {
                 .success(true)
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(false);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
 
         // Act
         authEventConsumer.handleAuthEvent(event, "client-123", 0, 100L);
 
         // Assert
-        verify(idempotencyService).isEventProcessed(event.getEventId());
+        verify(idempotencyService).checkAndMarkProcessed(event.getEventId());
         verify(sessionManagementService).handleLoginSuccess(event);
-        verify(idempotencyService).markEventAsProcessed(event.getEventId());
     }
 
     @Test
@@ -77,15 +76,14 @@ class AuthEventConsumerTest {
                 .failureReason("Invalid credentials")
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(false);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
 
         // Act
         authEventConsumer.handleAuthEvent(event, "client-456", 0, 101L);
 
         // Assert
-        verify(idempotencyService).isEventProcessed(event.getEventId());
+        verify(idempotencyService).checkAndMarkProcessed(event.getEventId());
         verify(sessionManagementService).handleLoginFailure(event);
-        verify(idempotencyService).markEventAsProcessed(event.getEventId());
     }
 
     @Test
@@ -101,16 +99,15 @@ class AuthEventConsumerTest {
                 .success(true)
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(true);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(true);
 
         // Act
         authEventConsumer.handleAuthEvent(event, "client-789", 0, 102L);
 
         // Assert
-        verify(idempotencyService).isEventProcessed(event.getEventId());
+        verify(idempotencyService).checkAndMarkProcessed(event.getEventId());
         verify(sessionManagementService, never()).handleLoginSuccess(any());
         verify(sessionManagementService, never()).handleLoginFailure(any());
-        verify(idempotencyService, never()).markEventAsProcessed(any());
     }
 
     @Test
@@ -126,14 +123,13 @@ class AuthEventConsumerTest {
                 .success(true)
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(false);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
 
         // Act
         authEventConsumer.handleLoginSuccess(event, "client-abc", 1, 200L);
 
         // Assert
         verify(sessionManagementService).handleLoginSuccess(event);
-        verify(idempotencyService).markEventAsProcessed(event.getEventId());
     }
 
     @Test
@@ -150,14 +146,13 @@ class AuthEventConsumerTest {
                 .failureReason("Invalid password")
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(false);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
 
         // Act
         authEventConsumer.handleLoginFailure(event, "client-def", 2, 300L);
 
         // Assert
         verify(sessionManagementService).handleLoginFailure(event);
-        verify(idempotencyService).markEventAsProcessed(event.getEventId());
     }
 
     @Test
@@ -174,14 +169,13 @@ class AuthEventConsumerTest {
                 .failureReason("Rate limit exceeded")
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(false);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
 
         // Act
         authEventConsumer.handleAuthEvent(event, "client-rate", 0, 103L);
 
         // Assert
         verify(sessionManagementService).handleLoginFailure(event);
-        verify(idempotencyService).markEventAsProcessed(event.getEventId());
     }
 
     @Test
@@ -197,14 +191,238 @@ class AuthEventConsumerTest {
                 .success(true)
                 .build();
 
-        when(idempotencyService.isEventProcessed(event.getEventId())).thenReturn(false);
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
         doThrow(new RuntimeException("Processing error")).when(sessionManagementService).handleLoginSuccess(any());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             authEventConsumer.handleAuthEvent(event, "client-error", 0, 104L);
         });
+    }
 
-        verify(idempotencyService, never()).markEventAsProcessed(any());
+    @Test
+    void testHandleLoginSuccess_DuplicateEvent_SkipsProcessing() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("duplicate-login-success")
+                .eventType(AuthEventType.LOGIN_SUCCESS)
+                .clientId("client-dup")
+                .clientType("web")
+                .ipAddress("192.168.1.10")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(true);
+
+        // Act
+        authEventConsumer.handleLoginSuccess(event, "client-dup", 1, 201L);
+
+        // Assert
+        verify(idempotencyService).checkAndMarkProcessed(event.getEventId());
+        verify(sessionManagementService, never()).handleLoginSuccess(any());
+    }
+
+    @Test
+    void testHandleLoginSuccess_ThrowsException_PropagatesError() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("error-login-success")
+                .eventType(AuthEventType.LOGIN_SUCCESS)
+                .clientId("client-err")
+                .clientType("web")
+                .ipAddress("192.168.1.11")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
+        doThrow(new RuntimeException("Login success processing error")).when(sessionManagementService).handleLoginSuccess(any());
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            authEventConsumer.handleLoginSuccess(event, "client-err", 1, 202L);
+        });
+    }
+
+    @Test
+    void testHandleLoginFailure_DuplicateEvent_SkipsProcessing() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("duplicate-login-failure")
+                .eventType(AuthEventType.LOGIN_FAILED)
+                .clientId("client-dup-fail")
+                .clientType("mobile")
+                .ipAddress("192.168.1.12")
+                .timestamp(Instant.now())
+                .success(false)
+                .failureReason("Invalid credentials")
+                .build();
+
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(true);
+
+        // Act
+        authEventConsumer.handleLoginFailure(event, "client-dup-fail", 2, 301L);
+
+        // Assert
+        verify(idempotencyService).checkAndMarkProcessed(event.getEventId());
+        verify(sessionManagementService, never()).handleLoginFailure(any());
+    }
+
+    @Test
+    void testHandleLoginFailure_ThrowsException_PropagatesError() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("error-login-failure")
+                .eventType(AuthEventType.LOGIN_FAILED)
+                .clientId("client-err-fail")
+                .clientType("mobile")
+                .ipAddress("192.168.1.13")
+                .timestamp(Instant.now())
+                .success(false)
+                .failureReason("Invalid password")
+                .build();
+
+        when(idempotencyService.checkAndMarkProcessed(event.getEventId())).thenReturn(false);
+        doThrow(new RuntimeException("Login failure processing error")).when(sessionManagementService).handleLoginFailure(any());
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            authEventConsumer.handleLoginFailure(event, "client-err-fail", 2, 302L);
+        });
+    }
+
+    @Test
+    void testHandleAuthEvent_NullEvent_ThrowsIllegalArgumentException() {
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleAuthEvent(null, "client-null", 0, 500L);
+        });
+
+        assertTrue(exception.getMessage().contains("null AuthEvent"));
+        assertTrue(exception.getMessage().contains("partition=0"));
+        assertTrue(exception.getMessage().contains("offset=500"));
+    }
+
+    @Test
+    void testHandleAuthEvent_MissingEventId_ThrowsIllegalArgumentException() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventType(AuthEventType.LOGIN_SUCCESS)
+                .clientId("client-no-id")
+                .clientType("web")
+                .ipAddress("192.168.1.14")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleAuthEvent(event, "client-no-id", 0, 501L);
+        });
+
+        assertTrue(exception.getMessage().contains("missing eventId"));
+    }
+
+    @Test
+    void testHandleAuthEvent_EmptyEventId_ThrowsIllegalArgumentException() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("   ")
+                .eventType(AuthEventType.LOGIN_SUCCESS)
+                .clientId("client-empty-id")
+                .clientType("web")
+                .ipAddress("192.168.1.15")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleAuthEvent(event, "client-empty-id", 0, 502L);
+        });
+
+        assertTrue(exception.getMessage().contains("missing eventId"));
+    }
+
+    @Test
+    void testHandleAuthEvent_MissingEventType_ThrowsIllegalArgumentException() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("event-no-type")
+                .clientId("client-no-type")
+                .clientType("web")
+                .ipAddress("192.168.1.16")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleAuthEvent(event, "client-no-type", 0, 503L);
+        });
+
+        assertTrue(exception.getMessage().contains("missing eventType"));
+    }
+
+    @Test
+    void testHandleAuthEvent_MissingClientId_ThrowsIllegalArgumentException() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("event-no-client")
+                .eventType(AuthEventType.LOGIN_SUCCESS)
+                .clientType("web")
+                .ipAddress("192.168.1.17")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleAuthEvent(event, "key", 0, 504L);
+        });
+
+        assertTrue(exception.getMessage().contains("missing clientId"));
+    }
+
+    @Test
+    void testHandleAuthEvent_EmptyClientId_ThrowsIllegalArgumentException() {
+        // Arrange
+        AuthEvent event = AuthEvent.builder()
+                .eventId("event-empty-client")
+                .eventType(AuthEventType.LOGIN_SUCCESS)
+                .clientId("  ")
+                .clientType("web")
+                .ipAddress("192.168.1.18")
+                .timestamp(Instant.now())
+                .success(true)
+                .build();
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleAuthEvent(event, "key", 0, 505L);
+        });
+
+        assertTrue(exception.getMessage().contains("missing clientId"));
+    }
+
+    @Test
+    void testHandleLoginSuccess_NullEvent_ThrowsIllegalArgumentException() {
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleLoginSuccess(null, "client-null", 1, 600L);
+        });
+
+        assertTrue(exception.getMessage().contains("null AuthEvent"));
+    }
+
+    @Test
+    void testHandleLoginFailure_NullEvent_ThrowsIllegalArgumentException() {
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authEventConsumer.handleLoginFailure(null, "client-null", 2, 700L);
+        });
+
+        assertTrue(exception.getMessage().contains("null AuthEvent"));
     }
 }

@@ -15,12 +15,20 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("userSessions", "processedEvents");
-        cacheManager.setCaffeine(caffeineCacheBuilder());
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager() {
+            @Override
+            protected com.github.benmanes.caffeine.cache.Cache<Object, Object> createNativeCaffeineCache(String name) {
+                if ("processedEvents".equals(name)) {
+                    return processedEventsCaffeineBuilder().build();
+                }
+                return userSessionsCaffeineBuilder().build();
+            }
+        };
+        cacheManager.setCacheNames(java.util.Arrays.asList("userSessions", "processedEvents"));
         return cacheManager;
     }
 
-    private Caffeine<Object, Object> caffeineCacheBuilder() {
+    private Caffeine<Object, Object> userSessionsCaffeineBuilder() {
         return Caffeine.newBuilder()
                 .initialCapacity(100)
                 .maximumSize(10000)
@@ -28,8 +36,7 @@ public class CacheConfig {
                 .recordStats();
     }
 
-    @Bean
-    public Caffeine<Object, Object> processedEventsCaffeine() {
+    private Caffeine<Object, Object> processedEventsCaffeineBuilder() {
         // Processed events cache for idempotency - shorter TTL
         return Caffeine.newBuilder()
                 .initialCapacity(1000)
