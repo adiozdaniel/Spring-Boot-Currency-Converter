@@ -1,0 +1,78 @@
+{
+  "type": "record",
+  "name": "AuthEvent",
+  "namespace": "com.example.authservice.avro",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "doc": "Unique identifier for the event"
+    },
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "AuthEventType",
+        "symbols": [
+          "LOGIN_SUCCESS",
+          "LOGIN_FAILED",
+          "TOKEN_GENERATED",
+          "TOKEN_REFRESHED",
+          "TOKEN_REVOKED",
+          "TOKEN_VALIDATED",
+          "TOKEN_EXPIRED",
+          "RATE_LIMIT_EXCEEDED",
+          "INVALID_API_KEY",
+          "INVALID_TOKEN"
+        ]
+      },
+      "doc": "Type of authentication event"
+    },
+    {
+      "name": "clientId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Client identifier"
+    },
+    {
+      "name": "clientType",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Type of client (web, mobile, platform)"
+    },
+    {
+      "name": "ipAddress",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "IP address of the request"
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Event timestamp in milliseconds"
+    },
+    {
+      "name": "success",
+      "type": "boolean",
+      "doc": "Whether the authentication was successful"
+    },
+    {
+      "name": "failureReason",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Reason for failure if not successful"
+    },
+    {
+      "name": "metadata",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Additional metadata"
+    }
+  ]
+}

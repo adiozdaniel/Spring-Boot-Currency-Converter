@@ -2,12 +2,12 @@ name: Rate Service CI/CD
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [master, develop]
     paths:
       - 'rate-service/**'
       - '.github/workflows/rate-service-ci.yml'
   pull_request:
-    branches: [main, master, develop]
+    branches: [master, develop]
     paths:
       - 'rate-service/**'
 
@@ -115,7 +115,7 @@ jobs:
   docker-build-push:
     runs-on: ubuntu-latest
     needs: [build, test, security-scan]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
 
     steps:
       - name: Checkout code
