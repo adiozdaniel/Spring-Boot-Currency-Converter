@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class MainServiceApplicationTest {
 
     @Test
-    @DisplayName("Should load application context")
+    @DisplayName("Should load application context successfully")
     void contextLoads() {
-        // Context loads successfully if this test passes
+        // Test to ensure the Spring application context loads successfully
     }
 
     @Test
