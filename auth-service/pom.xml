@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.5</version>
+		<version>3.5.9</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.example</groupId>
@@ -15,7 +15,7 @@
 	<description>Authentication Service for Currency Converter</description>
 
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
 		<sonar.organization>currency-converter</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -23,27 +23,36 @@
 		<dependency-check.version>9.0.7</dependency-check.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<bucket4j.version>8.10.1</bucket4j.version>
-		<avro.version>1.11.3</avro.version>
+		<resilience4j.version>2.2.0</resilience4j.version>
+		<avro.version>1.12.0</avro.version>
 		<!-- SonarQube Coverage Exclusions -->
 		<sonar.exclusions>
 			**/config/**/*.java,
 			**/dto/**/*.java,
 			**/event/**/*.java,
 			**/exception/**/*.java,
+			**/filter/**/*.java,
+			**/kafka/**/*.java,
+			**/model/**/*.java,
 			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
-			**/repository/**/*.java
+			**/repository/**/*.java,
+			**/AuthServiceApplication.java
 		</sonar.exclusions>
 		<sonar.coverage.exclusions>
 			**/config/**/*.java,
 			**/dto/**/*.java,
 			**/event/**/*.java,
 			**/exception/**/*.java,
+			**/filter/**/*.java,
+			**/kafka/**/*.java,
+			**/model/**/*.java,
 			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
-			**/repository/**/*.java
+			**/repository/**/*.java,
+			**/AuthServiceApplication.java
 		</sonar.coverage.exclusions>
 	</properties>
 
@@ -59,7 +68,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -91,11 +100,31 @@
 			<artifactId>bucket4j-core</artifactId>
 			<version>${bucket4j.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-reactor</artifactId>
+			<version>${resilience4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-ratelimiter</artifactId>
+			<version>${resilience4j.version}</version>
+		</dependency>
 
-		<!-- Kafka -->
+		<!-- Kafka - Reactive -->
+		<dependency>
+			<groupId>io.projectreactor.kafka</groupId>
+			<artifactId>reactor-kafka</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
+		</dependency>
+
+		<!-- Redis - Reactive -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
 		</dependency>
 
 		<!-- Avro for Schema Registry -->
@@ -153,6 +182,11 @@
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -241,9 +275,13 @@
 						<exclude>**/dto/**</exclude>
 						<exclude>**/event/**</exclude>
 						<exclude>**/exception/**</exclude>
+						<exclude>**/filter/**</exclude>
+						<exclude>**/kafka/**</exclude>
+						<exclude>**/model/**</exclude>
 						<exclude>**/constant/**</exclude>
 						<exclude>**/entity/**</exclude>
 						<exclude>**/repository/**</exclude>
+						<exclude>**/AuthServiceApplication.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
