@@ -34,11 +34,11 @@
 			**/filter/**/*.java,
 			**/kafka/**/*.java,
 			**/model/**/*.java,
-			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
 			**/repository/**/*.java,
-			**/AuthServiceApplication.java
+			**/AuthServiceApplication.java,
+			com/example/authservice/AuthServiceApplication.java
 		</sonar.exclusions>
 		<sonar.coverage.exclusions>
 			**/config/**/*.java,
@@ -48,11 +48,11 @@
 			**/filter/**/*.java,
 			**/kafka/**/*.java,
 			**/model/**/*.java,
-			**/model/**/*.java,
 			**/constant/**/*.java,
 			**/entity/**/*.java,
 			**/repository/**/*.java,
-			**/AuthServiceApplication.java
+			**/AuthServiceApplication.java,
+			com/example/authservice/AuthServiceApplication.java
 		</sonar.coverage.exclusions>
 	</properties>
 
@@ -281,7 +281,8 @@
 						<exclude>**/constant/**</exclude>
 						<exclude>**/entity/**</exclude>
 						<exclude>**/repository/**</exclude>
-						<exclude>**/AuthServiceApplication.java</exclude>
+						<exclude>**/AuthServiceApplication.class</exclude>
+					<exclude>com/example/authservice/AuthServiceApplication.class</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
