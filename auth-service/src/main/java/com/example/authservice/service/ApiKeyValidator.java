@@ -1,61 +1,38 @@
 package com.example.authservice.service;
 
-import com.example.authservice.config.ApiKeyConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
+import reactor.core.publisher.Mono;
 import java.util.Map;
 
-@Service
-public class ApiKeyValidator {
+/**
+ * Service interface for validating API keys.
+ * <p>
+ * This interface defines the contract for operations related to API key validation,
+ * including checking validity, retrieving client types, and fetching API key information.
+ * </p>
+ */
+public interface ApiKeyValidator {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApiKeyValidator.class);
+    /**
+     * Checks if a given API key is valid.
+     *
+     * @param apiKey the API key to validate.
+     * @return a {@link Mono} emitting {@code true} if the API key is valid, {@code false} otherwise.
+     */
+    Mono<Boolean> isValid(String apiKey);
 
-    private final ApiKeyConfig apiKeyConfig;
+    /**
+     * Retrieves the client type associated with a given API key.
+     *
+     * @param apiKey the API key for which to retrieve the client type.
+     * @return a {@link Mono} emitting the client type as a {@link String}, or an empty {@link Mono} if not found.
+     */
+    Mono<String> getClientType(String apiKey);
 
-    public ApiKeyValidator(ApiKeyConfig apiKeyConfig) {
-        this.apiKeyConfig = apiKeyConfig;
-    }
-
-    public boolean isValid(String apiKey) {
-        if (apiKey == null || apiKey.isBlank()) {
-            return false;
-        }
-
-        return apiKey.equals(apiKeyConfig.getWeb()) ||
-               apiKey.equals(apiKeyConfig.getMobile()) ||
-               apiKey.equals(apiKeyConfig.getPlatform());
-    }
-
-    public String getClientType(String apiKey) {
-        if (apiKey == null || apiKey.isBlank()) {
-            return null;
-        }
-
-        if (apiKey.equals(apiKeyConfig.getWeb())) {
-            return "web";
-        } else if (apiKey.equals(apiKeyConfig.getMobile())) {
-            return "mobile";
-        } else if (apiKey.equals(apiKeyConfig.getPlatform())) {
-            return "platform";
-        }
-
-        return null;
-    }
-
-    public Map<String, String> getApiKeyInfo(String apiKey) {
-        Map<String, String> info = new HashMap<>();
-        String clientType = getClientType(apiKey);
-
-        if (clientType != null) {
-            info.put("valid", "true");
-            info.put("clientType", clientType);
-        } else {
-            info.put("valid", "false");
-        }
-
-        return info;
-    }
+    /**
+     * Retrieves all information associated with a given API key.
+     *
+     * @param apiKey the API key for which to retrieve information.
+     * @return a {@link Mono} emitting a {@link Map} containing API key details, or an empty {@link Mono} if not found.
+     */
+    Mono<Map<String, String>> getApiKeyInfo(String apiKey);
 }

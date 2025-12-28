@@ -1,158 +1,93 @@
 package com.example.authservice.service;
 
-import com.example.authservice.config.JwtConfig;
-import com.example.authservice.exception.InvalidTokenException;
-import com.example.authservice.exception.TokenRevokedException;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import reactor.core.publisher.Mono;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-@Service
-public class TokenService {
+/**
+ * Service interface for managing JSON Web Tokens (JWTs), including generation,
+ * validation, revocation, and extraction of claims.
+ * <p>
+ * This interface defines the core operations for handling both access and
+ * refresh tokens within the authentication service.
+ * </p>
+ */
+public interface TokenService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TokenService.class);
+    /**
+     * Generates a new access token for a given client.
+     *
+     * @param clientId         the unique identifier of the client.
+     * @param clientType       the type of the client (e.g., "web", "mobile").
+     * @param additionalClaims any additional claims to include in the token.
+     * @return a {@link Mono} emitting the generated access token string.
+     */
+    Mono<String> generateAccessToken(String clientId, String clientType, Map<String, Object> additionalClaims);
 
-    private final JwtConfig jwtConfig;
-    private final Set<String> revokedTokens = ConcurrentHashMap.newKeySet();
+    /**
+     * Generates a new refresh token for a given client.
+     *
+     * @param clientId   the unique identifier of the client.
+     * @param clientType the type of the client.
+     * @return a {@link Mono} emitting the generated refresh token string.
+     */
+    Mono<String> generateRefreshToken(String clientId, String clientType);
 
-    public TokenService(JwtConfig jwtConfig) {
-        this.jwtConfig = jwtConfig;
-    }
+    /**
+     * Validates an access token and extracts its claims.
+     *
+     * @param token the access token string to validate.
+     * @return a {@link Mono} emitting the {@link Claims} contained within the token if valid.
+     *         Emits an error if the token is invalid or expired.
+     */
+    Mono<Claims> validateToken(String token);
 
-    public String generateAccessToken(String clientId, String clientType, Map<String, Object> additionalClaims) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtConfig.getExpiration());
+    /**
+     * Validates a refresh token and extracts its claims.
+     *
+     * @param token the refresh token string to validate.
+     * @return a {@link Mono} emitting the {@link Claims} contained within the refresh token if valid.
+     *         Emits an error if the token is invalid or expired.
+     */
+    Mono<Claims> validateRefreshToken(String token);
 
-        var builder = Jwts.builder()
-                .id(UUID.randomUUID().toString())
-                .subject(clientId)
-                .claim("type", "access")
-                .claim("clientType", clientType)
-                .issuedAt(now)
-                .expiration(expiry);
+    /**
+     * Revokes a given token, typically a refresh token, making it unusable for further authentication.
+     *
+     * @param token the token string to be revoked.
+     * @return a {@link Mono<Void>} that completes when the token has been successfully revoked.
+     */
+    Mono<Void> revokeToken(String token);
 
-        if (additionalClaims != null) {
-            additionalClaims.forEach(builder::claim);
-        }
+    /**
+     * Checks if a given token has been revoked.
+     *
+     * @param token the token string to check.
+     * @return a {@link Mono} emitting {@code true} if the token is revoked, {@code false} otherwise.
+     */
+    Mono<Boolean> isRevoked(String token);
 
-        return builder.signWith(getSigningKey()).compact();
-    }
+    /**
+     * Extracts the subject (client ID) from a token.
+     *
+     * @param token the token string.
+     * @return a {@link Mono} emitting the subject string.
+     */
+    Mono<String> extractSubject(String token);
 
-    public String generateRefreshToken(String clientId, String clientType) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtConfig.getRefreshExpiration());
+    /**
+     * Extracts the client type from a token.
+     *
+     * @param token the token string.
+     * @return a {@link Mono} emitting the client type string.
+     */
+    Mono<String> extractClientType(String token);
 
-        return Jwts.builder()
-                .id(UUID.randomUUID().toString())
-                .subject(clientId)
-                .claim("type", "refresh")
-                .claim("clientType", clientType)
-                .issuedAt(now)
-                .expiration(expiry)
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    public Claims validateToken(String token) {
-        if (isRevoked(token)) {
-            throw new TokenRevokedException("Token has been revoked");
-        }
-
-        try {
-            return Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-        } catch (ExpiredJwtException e) {
-            logger.warn("Token expired: {}", e.getMessage());
-            throw new InvalidTokenException("Token has expired");
-        } catch (JwtException e) {
-            logger.warn("Invalid token: {}", e.getMessage());
-            throw new InvalidTokenException("Invalid token");
-        }
-    }
-
-    public Claims validateRefreshToken(String token) {
-        Claims claims = validateToken(token);
-
-        String tokenType = claims.get("type", String.class);
-        if (!"refresh".equals(tokenType)) {
-            throw new InvalidTokenException("Invalid refresh token");
-        }
-
-        return claims;
-    }
-
-    public void revokeToken(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-
-            String jti = claims.getId();
-            if (jti != null) {
-                revokedTokens.add(jti);
-                logger.info("Token revoked: {}", jti);
-            }
-        } catch (JwtException e) {
-            logger.warn("Failed to revoke token: {}", e.getMessage());
-        }
-    }
-
-    public boolean isRevoked(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-
-            String jti = claims.getId();
-            return jti != null && revokedTokens.contains(jti);
-        } catch (JwtException e) {
-            return false;
-        }
-    }
-
-    public String extractSubject(String token) {
-        return validateToken(token).getSubject();
-    }
-
-    public String extractClientType(String token) {
-        return validateToken(token).get("clientType", String.class);
-    }
-
-    public String extractTokenId(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            return claims.getId();
-        } catch (JwtException e) {
-            return null;
-        }
-    }
-
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
+    /**
+     * Extracts the unique identifier (JTI) of the token.
+     *
+     * @param token the token string.
+     * @return a {@link Mono} emitting the token ID string.
+     */
+    Mono<String> extractTokenId(String token);
 }
