@@ -2,13 +2,15 @@ package com.example.authservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
+
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 /**
  * Configuration class for web security.
@@ -18,7 +20,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * </p>
  */
 @Configuration
-@EnableWebSecurity
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity 
 public class SecurityConfig {
 
     private final CorsConfig corsConfig;
@@ -39,24 +42,20 @@ public class SecurityConfig {
      * CSRF, session management, and authorization rules.
      * </p>
      *
-     * @param http the {@link HttpSecurity} to configure.
-     * @return the configured {@link SecurityFilterChain}.
-     * @throws Exception if an error occurs during configuration.
+     * @param http the {@link ServerHttpSecurity} to configure.
+     * @return the configured {@link SecurityWebFilterChain}.
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/actuator/**").authenticated()
-                .anyRequest().authenticated()
-            );
-
-        return http.build();
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .pathMatchers("/auth/**").permitAll()
+                        .pathMatchers("/actuator/**").authenticated()
+                        .anyExchange().authenticated())
+                .build();
     }
 
     /**
