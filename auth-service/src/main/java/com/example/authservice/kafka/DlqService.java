@@ -2,6 +2,7 @@ package com.example.authservice.kafka;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import org.slf4j.Logger;
@@ -14,13 +15,15 @@ import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderRecord;
 
 /**
- * Service responsible for sending failed events to a Dead Letter Queue (DLQ) topic.
+ * Service responsible for sending failed events to a Dead Letter Queue (DLQ)
+ * topic.
  * <p>
  * This ensures that events that could not be processed successfully by the
  * main Kafka topics are not lost and can be inspected later.
  * </p>
  */
 @Service
+@ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class DlqService {
   private static final Logger logger = LoggerFactory.getLogger(DlqService.class);
   private final KafkaSender<String, Object> kafkaSender;
@@ -58,12 +61,16 @@ public class DlqService {
   /**
    * Sends a failed event to the Dead Letter Queue (DLQ).
    *
-   * @param originalTopic the name of the Kafka topic where the event originally failed.
+   * @param originalTopic the name of the Kafka topic where the event originally
+   *                      failed.
    * @param key           the key of the Kafka message.
    * @param event         the original event object that failed to be processed.
-   * @param errorMessage  a description of the error that caused the event to be sent to the DLQ.
-   * @return a {@link Mono<Void>} that completes when the message is sent to the DLQ
-   *         or an error occurs. Returns {@link Mono#empty()} if Kafka is disabled.
+   * @param errorMessage  a description of the error that caused the event to be
+   *                      sent to the DLQ.
+   * @return a {@link Mono<Void>} that completes when the message is sent to the
+   *         DLQ
+   *         or an error occurs. Returns {@link Mono#empty()} if Kafka is
+   *         disabled.
    */
   public Mono<Void> sendToDlq(
       String originalTopic, String key,
