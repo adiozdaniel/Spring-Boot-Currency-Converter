@@ -21,7 +21,7 @@ class StatusControllerTest {
 	@DisplayName("Should return service status")
 	void shouldReturnServiceStatus() {
 		webTestClient.get()
-				.uri("/status")
+				.uri("/v1/status")
 				.accept(MediaType.APPLICATION_JSON)
 				.exchange()
 				.expectStatus().isOk()
@@ -35,7 +35,7 @@ class StatusControllerTest {
 	@DisplayName("Should return exactly two fields")
 	void shouldReturnExactlyTwoFields() {
 		webTestClient.get()
-				.uri("/status")
+				.uri("/v1/status")
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
@@ -49,7 +49,7 @@ class StatusControllerTest {
 	void shouldNotRequireAuthentication() {
 		// No Authorization header provided
 		webTestClient.get()
-				.uri("/status")
+				.uri("/v1/status")
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
@@ -62,7 +62,7 @@ class StatusControllerTest {
 		// Fire multiple requests concurrently
 		for (int i = 0; i < 10; i++) {
 			webTestClient.get()
-					.uri("/status")
+					.uri("/v1/status")
 					.exchange()
 					.expectStatus().isOk()
 					.expectBody()
@@ -77,7 +77,7 @@ class StatusControllerTest {
 		// Call multiple times and verify consistency
 		for (int i = 0; i < 5; i++) {
 			webTestClient.get()
-					.uri("/status")
+					.uri("/v1/status")
 					.exchange()
 					.expectStatus().isOk()
 					.expectBody()
@@ -91,7 +91,7 @@ class StatusControllerTest {
 	void shouldAcceptGetMethod() {
 		// Verify GET is allowed and works correctly
 		webTestClient.get()
-				.uri("/status")
+				.uri("/v1/status")
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
@@ -103,7 +103,7 @@ class StatusControllerTest {
 	@DisplayName("Should work without any headers")
 	void shouldWorkWithoutAnyHeaders() {
 		webTestClient.get()
-				.uri("/status")
+				.uri("/v1/status")
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
@@ -115,7 +115,7 @@ class StatusControllerTest {
 	@DisplayName("Should work with query parameters (ignore them)")
 	void shouldWorkWithQueryParameters() {
 		webTestClient.get()
-				.uri("/status?foo=bar&test=123")
+				.uri("/v1/status?foo=bar&test=123")
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()

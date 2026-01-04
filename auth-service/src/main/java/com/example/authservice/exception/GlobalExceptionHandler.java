@@ -25,10 +25,12 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handles {@link InvalidApiKeyException} and returns a 401 Unauthorized response.
+     * Handles {@link InvalidApiKeyException} and returns a 401 Unauthorized
+     * response.
      *
      * @param ex the {@link InvalidApiKeyException} that was thrown.
-     * @return a {@link ResponseEntity} containing error details and HTTP status 401.
+     * @return a {@link ResponseEntity} containing error details and HTTP status
+     *         401.
      */
     @ExceptionHandler(InvalidApiKeyException.class)
     public ResponseEntity<Map<String, String>> handleInvalidApiKeyException(InvalidApiKeyException ex) {
@@ -40,10 +42,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles {@link InvalidTokenException} and returns a 401 Unauthorized response.
+     * Handles {@link InvalidTokenException} and returns a 401 Unauthorized
+     * response.
      *
      * @param ex the {@link InvalidTokenException} that was thrown.
-     * @return a {@link ResponseEntity} containing error details and HTTP status 401.
+     * @return a {@link ResponseEntity} containing error details and HTTP status
+     *         401.
      */
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<Map<String, String>> handleInvalidTokenException(InvalidTokenException ex) {
@@ -55,10 +59,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles {@link TokenRevokedException} and returns a 401 Unauthorized response.
+     * Handles {@link TokenRevokedException} and returns a 401 Unauthorized
+     * response.
      *
      * @param ex the {@link TokenRevokedException} that was thrown.
-     * @return a {@link ResponseEntity} containing error details and HTTP status 401.
+     * @return a {@link ResponseEntity} containing error details and HTTP status
+     *         401.
      */
     @ExceptionHandler(TokenRevokedException.class)
     public ResponseEntity<Map<String, String>> handleTokenRevokedException(TokenRevokedException ex) {
@@ -70,10 +76,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles {@link RateLimitExceededException} and returns a 429 Too Many Requests response.
+     * Handles {@link RateLimitExceededException} and returns a 429 Too Many
+     * Requests response.
      *
      * @param ex the {@link RateLimitExceededException} that was thrown.
-     * @return a {@link ResponseEntity} containing error details and HTTP status 429.
+     * @return a {@link ResponseEntity} containing error details and HTTP status
+     *         429.
      */
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<Map<String, String>> handleRateLimitExceededException(RateLimitExceededException ex) {
@@ -85,10 +93,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles {@link MethodArgumentNotValidException} for validation errors and returns a 400 Bad Request response.
+     * Handles {@link MethodArgumentNotValidException} for validation errors and
+     * returns a 400 Bad Request response.
      *
      * @param ex the {@link MethodArgumentNotValidException} that was thrown.
-     * @return a {@link ResponseEntity} containing validation error details and HTTP status 400.
+     * @return a {@link ResponseEntity} containing validation error details and HTTP
+     *         status 400.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -108,10 +118,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles generic {@link Exception} and returns a 500 Internal Server Error response.
+     * Handles {@link UnknownIpAddressException} and returns a 403 Forbidden
+     * response.
+     *
+     * @param ex the {@link UnknownIpAddressException} that was thrown.
+     * 
+     * @return a {@link ResponseEntity} containing error details and HTTP status
+     *         403.
+     */
+    @ExceptionHandler(UnknownIpAddressException.class)
+    public ResponseEntity<Map<String, String>> handleUnknownIpAddressException(UnknownIpAddressException ex) {
+        logger.warn("Request rejected - unknown IP Address");
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "forbidden");
+        error.put("message", "Unable to determine client IP address");
+
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * Handles generic {@link Exception} and returns a 500 Internal Server Error
+     * response.
      *
      * @param ex the {@link Exception} that was thrown.
-     * @return a {@link ResponseEntity} containing generic error details and HTTP status 500.
+     * @return a {@link ResponseEntity} containing generic error details and HTTP
+     *         status 500.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGlobalException(Exception ex) {

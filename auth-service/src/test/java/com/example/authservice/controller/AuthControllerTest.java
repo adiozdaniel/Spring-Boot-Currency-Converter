@@ -46,7 +46,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -64,7 +65,7 @@ class AuthControllerTest {
                 request.setClientId("client123");
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -80,7 +81,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.error(new InvalidApiKeyException()));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -96,7 +98,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.error(new RateLimitExceededException()));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -113,7 +116,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/refresh")
+                                .uri("/v1/auth/refresh")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -131,7 +135,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.empty());
 
                 webTestClient.post()
-                                .uri("/auth/revoke")
+                                .uri("/v1/auth/revoke")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -147,7 +152,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(Map.of("valid", true, "subject", "client123")));
 
                 webTestClient.post()
-                                .uri("/auth/validate")
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .header("Authorization", "Bearer valid-token")
                                 .exchange()
                                 .expectStatus().isOk()
@@ -165,7 +171,7 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
                                 .header("X-Forwarded-For", "203.0.113.45")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
@@ -183,7 +189,7 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
                                 .header("X-Forwarded-For", "203.0.113.45, 198.51.100.1, 192.0.2.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
@@ -201,7 +207,7 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/refresh")
+                                .uri("/v1/auth/refresh")
                                 .header("X-Real-IP", "198.51.100.5")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
@@ -219,7 +225,7 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
                                 .header("X-Forwarded-For", "203.0.113.45")
                                 .header("X-Real-IP", "198.51.100.5")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -238,7 +244,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(response));
 
                 webTestClient.post()
-                                .uri("/auth/token")
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
@@ -252,7 +259,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(Map.of("valid", true, "subject", "client123")));
 
                 webTestClient.post()
-                                .uri("/auth/validate")
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .header("Authorization", "Bearer valid-token-123")
                                 .exchange()
                                 .expectStatus().isOk()
@@ -267,7 +275,8 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(Map.of("valid", false)));
 
                 webTestClient.post()
-                                .uri("/auth/validate")
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .header("Authorization", "plain-token")
                                 .exchange()
                                 .expectStatus().isOk();
@@ -280,11 +289,28 @@ class AuthControllerTest {
                                 .thenReturn(Mono.just(Map.of("valid", true, "subject", "client456")));
 
                 webTestClient.post()
-                                .uri("/auth/validate")
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
                                 .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")
                                 .exchange()
                                 .expectStatus().isOk()
                                 .expectBody()
                                 .jsonPath("$.valid").isEqualTo(true);
+        }
+
+        @Test
+        @DisplayName("Should reject request with unknown IP address")
+        void shouldRejectRequestWithUnknownIpAddress() {
+                RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
+
+                webTestClient.post()
+                                .uri("/v1/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isForbidden()
+                                .expectBody()
+                                .jsonPath("$.error").isEqualTo("forbidden")
+                                .jsonPath("$.message").isEqualTo("Unable to determine client IP address");
         }
 }

@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .pathMatchers("/auth/**").permitAll()
+                        .pathMatchers("/v*/auth/**").permitAll()
                         .pathMatchers("/actuator/**").authenticated()
                         .anyExchange().authenticated())
                 .build();

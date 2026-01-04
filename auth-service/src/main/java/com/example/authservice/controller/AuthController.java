@@ -4,6 +4,7 @@ import com.example.authservice.dto.AuthRequest;
 import com.example.authservice.dto.AuthResponse;
 import com.example.authservice.dto.RefreshTokenRequest;
 import com.example.authservice.dto.RevokeTokenRequest;
+import com.example.authservice.exception.UnknownIpAddressException;
 import com.example.authservice.service.AuthenticationService;
 
 import jakarta.validation.Valid;
@@ -19,12 +20,13 @@ import java.util.Map;
 /**
  * REST controller for handling authentication-related requests.
  * <p>
- * This controller provides endpoints for token issuance, refreshment, revocation,
+ * This controller provides endpoints for token issuance, refreshment,
+ * revocation,
  * and validation.
  * </p>
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/v1/auth")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -32,7 +34,8 @@ public class AuthController {
     private final AuthenticationService authenticationService;
 
     /**
-     * Constructs a new {@link AuthController} with the specified authentication service.
+     * Constructs a new {@link AuthController} with the specified authentication
+     * service.
      *
      * @param authenticationService the service for handling authentication logic.
      */
@@ -43,9 +46,10 @@ public class AuthController {
     /**
      * Authenticates a user and issues a new access and refresh token.
      *
-     * @param request       the authentication request containing client credentials.
-     * @param httpRequest   the incoming server HTTP request.
-     * @return a {@link Mono} containing a {@link ResponseEntity} with the {@link AuthResponse}.
+     * @param request     the authentication request containing client credentials.
+     * @param httpRequest the incoming server HTTP request.
+     * @return a {@link Mono} containing a {@link ResponseEntity} with the
+     *         {@link AuthResponse}.
      */
     @PostMapping("/token")
     public Mono<ResponseEntity<AuthResponse>> authenticate(
@@ -53,17 +57,18 @@ public class AuthController {
             ServerHttpRequest httpRequest) {
 
         return Mono.fromSupplier(() -> getClientIp(httpRequest))
-        .doOnNext(ip -> logger.info("Authentication request from IP: {}", ip))
-        .flatMap(clientIp -> authenticationService.authenticate(request, clientIp))
-        .map(ResponseEntity::ok);
+                .doOnNext(ip -> logger.info("Authentication request from IP: {}", ip))
+                .flatMap(clientIp -> authenticationService.authenticate(request, clientIp))
+                .map(ResponseEntity::ok);
     }
 
     /**
      * Refreshes an existing access token using a refresh token.
      *
-     * @param request       the refresh token request.
-     * @param httpRequest   the incoming server HTTP request.
-     * @return a {@link Mono} containing a {@link ResponseEntity} with the new {@link AuthResponse}.
+     * @param request     the refresh token request.
+     * @param httpRequest the incoming server HTTP request.
+     * @return a {@link Mono} containing a {@link ResponseEntity} with the new
+     *         {@link AuthResponse}.
      */
     @PostMapping("/refresh")
     public Mono<ResponseEntity<AuthResponse>> refreshToken(
@@ -71,8 +76,8 @@ public class AuthController {
             ServerHttpRequest httpRequest) {
 
         return Mono.fromSupplier(() -> getClientIp(httpRequest))
-        .doOnNext(ip -> logger.info("Token refresh request from IP: {}", ip))
-        .flatMap(clientIp -> authenticationService.refreshToken(request.getRefreshToken(), clientIp))
+                .doOnNext(ip -> logger.info("Token refresh request from IP: {}", ip))
+                .flatMap(clientIp -> authenticationService.refreshToken(request.getRefreshToken(), clientIp))
                 .map(ResponseEntity::ok);
     }
 
@@ -80,22 +85,24 @@ public class AuthController {
      * Revokes a refresh token.
      *
      * @param request the revoke token request.
-     * @return a {@link Mono} containing a {@link ResponseEntity} with a confirmation message.
+     * @return a {@link Mono} containing a {@link ResponseEntity} with a
+     *         confirmation message.
      */
     @PostMapping("/revoke")
     public Mono<ResponseEntity<Map<String, String>>> revokeToken(
             @Valid @RequestBody RevokeTokenRequest request) {
 
         return authenticationService.revokeToken(request.getToken())
-        .doOnSuccess(v -> logger.info("Token successfully revoked"))
-        .thenReturn(ResponseEntity.ok(Map.of("message", "Token revoked successfully")));
+                .doOnSuccess(v -> logger.info("Token successfully revoked"))
+                .thenReturn(ResponseEntity.ok(Map.of("message", "Token revoked successfully")));
     }
 
     /**
      * Validates an access token.
      *
      * @param authHeader the Authorization header containing the Bearer token.
-     * @return a {@link Mono} containing a {@link ResponseEntity} with the validation result.
+     * @return a {@link Mono} containing a {@link ResponseEntity} with the
+     *         validation result.
      */
     @PostMapping("/validate")
     public Mono<ResponseEntity<Map<String, Object>>> validateToken(
@@ -115,7 +122,8 @@ public class AuthController {
      * </p>
      *
      * @param request the server HTTP request.
-     * @return the client's IP address or "unknown" if not found.
+     * @return the client's IP address.
+     * @throws UnknownIpAddressException if IP address cannot be determined.
      */
     private String getClientIp(ServerHttpRequest request) {
         String xForwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
@@ -128,9 +136,11 @@ public class AuthController {
             return xRealIp;
         }
 
-        return request.getRemoteAddress() != null
-                ? request.getRemoteAddress().getAddress().getHostAddress()
-                : "unknown";
+        if (request.getRemoteAddress() != null) {
+            return request.getRemoteAddress().getAddress().getHostAddress();
+        }
+
+        throw new UnknownIpAddressException();
     }
 
     /**

@@ -20,7 +20,7 @@ public class StatusController {
      *
      * @return a {@link Map} containing the service name and its status.
      */
-    @GetMapping("/status")
+    @GetMapping("/v1/status")
     public Map<String, String> status() {
         return Map.of(
                 "service", "auth-service",
