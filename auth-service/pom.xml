@@ -32,6 +32,7 @@
 		<!-- SonarQube Coverage Exclusions -->
 		<sonar.exclusions>
 			**/config/**/*.java,
+			**/constant/**/*.java,
 			**/dto/**/*.java,
 			**/event/**/*.java,
 			**/exception/**/*.java,
@@ -46,6 +47,7 @@
 		</sonar.exclusions>
 		<sonar.coverage.exclusions>
 			**/config/**/*.java,
+			**/constant/**/*.java,
 			**/dto/**/*.java,
 			**/event/**/*.java,
 			**/exception/**/*.java,
