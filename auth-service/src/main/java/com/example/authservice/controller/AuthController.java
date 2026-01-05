@@ -2,20 +2,29 @@ package com.example.authservice.controller;
 
 import com.example.authservice.dto.AuthRequest;
 import com.example.authservice.dto.AuthResponse;
-import com.example.authservice.dto.RefreshTokenRequest;
 import com.example.authservice.dto.RevokeTokenRequest;
-import com.example.authservice.exception.UnknownIpAddressException;
+import com.example.authservice.dto.RefreshTokenRequest;
 import com.example.authservice.service.AuthenticationService;
+import com.example.authservice.exception.UnknownIpAddressException;
 
-import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import reactor.core.publisher.Mono;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.util.Map;
+import jakarta.validation.Valid;
+import reactor.core.publisher.Mono;
 
 /**
  * REST controller for handling authentication-related requests.
@@ -27,6 +36,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/auth")
+@Tag(name = "Authentication", description = "JWT authentication and token management endpoints")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -52,6 +62,13 @@ public class AuthController {
      *         {@link AuthResponse}.
      */
     @PostMapping("/token")
+    @Operation(summary = "Authenticate and get tokens", description = "Validates API key and returns JWT access and refresh tokens")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated", content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Invalid API key"),
+            @ApiResponse(responseCode = "403", description = "Unable to determine client IP"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public Mono<ResponseEntity<AuthResponse>> authenticate(
             @Valid @RequestBody AuthRequest request,
             ServerHttpRequest httpRequest) {
@@ -71,6 +88,12 @@ public class AuthController {
      *         {@link AuthResponse}.
      */
     @PostMapping("/refresh")
+    @Operation(summary = "Refresh access token", description = "Uses a valid refresh token to obtain a new access token and refresh token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully refreshed", content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token"),
+            @ApiResponse(responseCode = "403", description = "Unable to determine client IP")
+    })
     public Mono<ResponseEntity<AuthResponse>> refreshToken(
             @Valid @RequestBody RefreshTokenRequest request,
             ServerHttpRequest httpRequest) {
@@ -89,6 +112,11 @@ public class AuthController {
      *         confirmation message.
      */
     @PostMapping("/revoke")
+    @Operation(summary = "Revoke token", description = "Revokes a refresh token, making it unusable for future authentication")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token successfully revoked"),
+            @ApiResponse(responseCode = "401", description = "Invalid token")
+    })
     public Mono<ResponseEntity<Map<String, String>>> revokeToken(
             @Valid @RequestBody RevokeTokenRequest request) {
 
@@ -105,6 +133,11 @@ public class AuthController {
      *         validation result.
      */
     @PostMapping("/validate")
+    @Operation(summary = "Validate access token", description = "Validates an access token and returns its claims", security = @SecurityRequirement(name = "Bearer Authentication"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token is valid"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token")
+    })
     public Mono<ResponseEntity<Map<String, Object>>> validateToken(
             @RequestHeader("Authorization") String authHeader) {
 

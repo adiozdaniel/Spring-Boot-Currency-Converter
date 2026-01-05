@@ -1,5 +1,6 @@
 package com.example.authservice.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -11,10 +12,14 @@ import jakarta.validation.constraints.NotBlank;
  */
 public class AuthRequest {
 
+    @Schema(description = "API key for authentication", example = "web-api-key-12345", required = true)
     @NotBlank(message = "API key is required")
     private String apiKey;
 
+    @Schema(description = "Unique client identifier", example = "client-abc-123")
     private String clientId;
+
+    @Schema(description = "Type of client", example = "web", allowableValues = { "web", "mobile", "platform" })
     private String clientType;
 
     /**
