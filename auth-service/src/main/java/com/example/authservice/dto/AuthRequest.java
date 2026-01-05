@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotBlank;
  */
 public class AuthRequest {
 
-    @Schema(description = "API key for authentication", example = "web-api-key-12345", required = true)
+    @Schema(description = "API key for authentication", example = "web-api-key-12345")
     @NotBlank(message = "API key is required")
     private String apiKey;
 
