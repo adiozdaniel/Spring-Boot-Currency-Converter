@@ -4,3 +4,8 @@ application.yml
 
 # Maven build directories
 **/target/
+
+# logs
+*.log
+logs/
+*.out
