@@ -81,10 +81,10 @@ public class DlqService {
     }
 
     DlqEvent dlqEvent = new DlqEvent(originalTopic, key, event, errorMessage);
-    ProducerRecord<String, Object> record = new ProducerRecord<>(dlqTopic, key, dlqEvent);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(dlqTopic, key, dlqEvent);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> {
           logger.info("Event sent to DLQ for topic {}: key={}", originalTopic, key);

@@ -15,6 +15,9 @@ import org.springframework.context.annotation.Configuration;
 
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaAdmin;
+
+import com.example.authservice.constant.KafkaConstants;
+
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import reactor.kafka.sender.KafkaSender;
@@ -24,9 +27,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka configuration class for setting up Kafka producers, topics, and security.
+ * Kafka configuration class for setting up Kafka producers, topics, and
+ * security.
  * <p>
- * This class is conditionally enabled based on the {@code kafka.enabled} property.
+ * This class is conditionally enabled based on the {@code kafka.enabled}
+ * property.
  * It provides beans for {@link KafkaAdmin}, a reactive {@link KafkaSender}, and
  * defines application-specific Kafka topics.
  * </p>
@@ -170,8 +175,8 @@ public class KafkaConfig {
         return TopicBuilder.name(authLoginSuccessTopicName)
                 .partitions(authLoginSuccessPartitions)
                 .replicas(replicationFactor)
-                .config("retention.ms", "604800000") // 7 days
-                .config("cleanup.policy", "delete")
+                .config(KafkaConstants.RETENTION_MS, "604800000")
+                .config(KafkaConstants.CLEANUP_POLICY, KafkaConstants.CLEANUP_POLICY_DELETE)
                 .build();
     }
 
@@ -185,13 +190,14 @@ public class KafkaConfig {
         return TopicBuilder.name(authLoginFailedTopicName)
                 .partitions(authLoginFailedPartitions)
                 .replicas(replicationFactor)
-                .config("retention.ms", "2592000000") // 30 days for security analysis
-                .config("cleanup.policy", "delete")
+                .config(KafkaConstants.RETENTION_MS, "2592000000")
+                .config(KafkaConstants.CLEANUP_POLICY, KafkaConstants.CLEANUP_POLICY_DELETE)
                 .build();
     }
 
     /**
-     * Defines the topic for token-related events (e.g., generation, refresh, revoke).
+     * Defines the topic for token-related events (e.g., generation, refresh,
+     * revoke).
      *
      * @return a {@link NewTopic} bean for the tokens topic.
      */
@@ -200,8 +206,8 @@ public class KafkaConfig {
         return TopicBuilder.name(authTokensTopicName)
                 .partitions(authTokensPartitions)
                 .replicas(replicationFactor)
-                .config("retention.ms", "604800000") // 7 days
-                .config("cleanup.policy", "delete")
+                .config(KafkaConstants.RETENTION_MS, "604800000")
+                .config(KafkaConstants.CLEANUP_POLICY, KafkaConstants.CLEANUP_POLICY_DELETE)
                 .build();
     }
 
@@ -216,8 +222,8 @@ public class KafkaConfig {
         return TopicBuilder.name(authDlqTopicName)
                 .partitions(1)
                 .replicas(replicationFactor)
-                .config("retention.ms", "2592000000") // 30 days for DLQ
-                .config("cleanup.policy", "delete")
+                .config(KafkaConstants.RETENTION_MS, "2592000000")
+                .config(KafkaConstants.CLEANUP_POLICY, KafkaConstants.CLEANUP_POLICY_DELETE)
                 .build();
     }
 
@@ -227,7 +233,8 @@ public class KafkaConfig {
      * This method configures SSL and/or SASL based on the application properties.
      * </p>
      *
-     * @param configs the configuration map to which security properties will be added.
+     * @param configs the configuration map to which security properties will be
+     *                added.
      */
     private void addSecurityConfig(Map<String, Object> configs) {
         configs.put("security.protocol", securityProtocol);
@@ -244,11 +251,10 @@ public class KafkaConfig {
             }
         }
 
-        if ("SASL_SSL".equals(securityProtocol) || "SASL_PLAINTEXT".equals(securityProtocol)) {
-            if (saslMechanism != null && !saslMechanism.isEmpty()) {
-                configs.put("sasl.mechanism", saslMechanism);
-                configs.put("sasl.jaas.config", saslJaasConfig);
-            }
+        if (("SASL_SSL".equals(securityProtocol) || "SASL_PLAINTEXT".equals(securityProtocol)) &&
+                saslMechanism != null && !saslMechanism.isEmpty()) {
+            configs.put("sasl.mechanism", saslMechanism);
+            configs.put("sasl.jaas.config", saslJaasConfig);
         }
     }
 }
