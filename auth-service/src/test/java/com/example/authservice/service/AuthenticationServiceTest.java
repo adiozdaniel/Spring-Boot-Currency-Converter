@@ -136,7 +136,6 @@ class AuthenticationServiceTest {
 
                 // Verify that a UUID was generated
                 String capturedClientId = clientIdCaptor.getValue();
-                assertThat(capturedClientId).isNotNull();
                 assertThat(capturedClientId).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
         }
 
@@ -441,12 +440,12 @@ class AuthenticationServiceTest {
                 // When & Then
                 StepVerifier.create(authenticationService.validateToken(token))
                                 .assertNext(result -> {
-                                        assertThat(result).hasSize(5);
-                                        assertThat(result.get("valid")).isEqualTo(true);
-                                        assertThat(result.get("subject")).isEqualTo(clientId);
-                                        assertThat(result.get("clientType")).isEqualTo(clientType);
-                                        assertThat(result.get("expiresAt")).isEqualTo(expiresAt);
-                                        assertThat(result.get("issuedAt")).isEqualTo(issuedAt);
+                                        assertThat(result).isNotNull();
+                                        assertThat(result).containsEntry("valid", true);
+                                        assertThat(result).containsEntry("subject", clientId);
+                                        assertThat(result).containsEntry("clientType", clientType);
+                                        assertThat(result).containsEntry("expiresAt", expiresAt);
+                                        assertThat(result).containsEntry("issuedAt", issuedAt);
                                 })
                                 .verifyComplete();
         }

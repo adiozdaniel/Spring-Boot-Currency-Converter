@@ -2,27 +2,32 @@ package com.example.authservice.controller;
 
 import com.example.authservice.dto.AuthRequest;
 import com.example.authservice.dto.AuthResponse;
-import com.example.authservice.dto.RefreshTokenRequest;
 import com.example.authservice.dto.RevokeTokenRequest;
+import com.example.authservice.dto.RefreshTokenRequest;
+import com.example.authservice.service.AuthenticationService;
 import com.example.authservice.exception.InvalidApiKeyException;
 import com.example.authservice.exception.RateLimitExceededException;
-import com.example.authservice.service.AuthenticationService;
-import org.junit.jupiter.api.DisplayName;
+
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Mono;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
 
-import java.util.Map;
+import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
 
 @WebFluxTest(controllers = AuthController.class, excludeAutoConfiguration = ReactiveSecurityAutoConfiguration.class)
 @ActiveProfiles("test")
@@ -160,59 +165,44 @@ class AuthControllerTest {
                                 .expectBody()
                                 .jsonPath("$.valid").isEqualTo(true);
         }
+        
+        @ParameterizedTest
+        @CsvSource({
+                "203.0.113.45,X-Forwarded-For",
+                "'203.0.113.45, 198.51.100.1, 192.0.2.1',X-Forwarded-For",
+                "198.51.100.5,X-Real-IP"
+        })
+        @DisplayName("Should extract IP from various headers")
+        void shouldExtractIpFromHeaders(String ipValue, String headerName) {
+                if (headerName.equals("X-Real-IP")) {
+                        RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
+                        AuthResponse response = new AuthResponse("new-access-token", "new-refresh-token", "Bearer", 3600);
 
-        @Test
-        @DisplayName("Should extract IP from X-Forwarded-For header")
-        void shouldExtractIpFromXForwardedForHeader() {
-                AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
-                AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
+                        when(authenticationService.refreshToken(anyString(), anyString()))
+                                        .thenReturn(Mono.just(response));
 
-                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
-                                .thenReturn(Mono.just(response));
+                        webTestClient.post()
+                                        .uri("/v1/auth/refresh")
+                                        .header(headerName, ipValue)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(request)
+                                        .exchange()
+                                        .expectStatus().isOk();
+                } else {
+                        AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
+                        AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
 
-                webTestClient.post()
-                                .uri("/v1/auth/token")
-                                .header("X-Forwarded-For", "203.0.113.45")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(request)
-                                .exchange()
-                                .expectStatus().isOk();
-        }
+                        when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                        .thenReturn(Mono.just(response));
 
-        @Test
-        @DisplayName("Should extract first IP from X-Forwarded-For with multiple IPs")
-        void shouldExtractFirstIpFromXForwardedForWithMultipleIps() {
-                AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
-                AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
-
-                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
-                                .thenReturn(Mono.just(response));
-
-                webTestClient.post()
-                                .uri("/v1/auth/token")
-                                .header("X-Forwarded-For", "203.0.113.45, 198.51.100.1, 192.0.2.1")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(request)
-                                .exchange()
-                                .expectStatus().isOk();
-        }
-
-        @Test
-        @DisplayName("Should extract IP from X-Real-IP header")
-        void shouldExtractIpFromXRealIpHeader() {
-                RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
-                AuthResponse response = new AuthResponse("new-access-token", "new-refresh-token", "Bearer", 3600);
-
-                when(authenticationService.refreshToken(anyString(), anyString()))
-                                .thenReturn(Mono.just(response));
-
-                webTestClient.post()
-                                .uri("/v1/auth/refresh")
-                                .header("X-Real-IP", "198.51.100.5")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(request)
-                                .exchange()
-                                .expectStatus().isOk();
+                        webTestClient.post()
+                                        .uri("/v1/auth/token")
+                                        .header(headerName, ipValue)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(request)
+                                        .exchange()
+                                        .expectStatus().isOk();
+                }
         }
 
         @Test

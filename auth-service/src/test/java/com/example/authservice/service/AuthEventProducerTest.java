@@ -129,13 +129,12 @@ class AuthEventProducerTest {
                 .verifyComplete();
 
         // Verify the captured record
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        assertThat(record.topic()).isEqualTo(LOGIN_SUCCESS_TOPIC);
-        assertThat(record.key()).isEqualTo(clientId);
-        assertThat(record.value()).isInstanceOf(AuthEvent.class);
-
-        AuthEvent event = (AuthEvent) record.value();
+        assertThat(producerRecord.topic()).isEqualTo(LOGIN_SUCCESS_TOPIC);
+        assertThat(producerRecord.key()).isEqualTo(clientId);
+        assertThat(producerRecord.value()).isInstanceOf(AuthEvent.class);
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(AuthEventType.LOGIN_SUCCESS);
         assertThat(event.clientId()).isEqualTo(clientId);
         assertThat(event.clientType()).isEqualTo(clientType);
@@ -160,14 +159,14 @@ class AuthEventProducerTest {
                 .verifyComplete();
 
         // Verify the captured record
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        assertThat(record.topic()).isEqualTo(LOGIN_FAILED_TOPIC);
+        assertThat(producerRecord.topic()).isEqualTo(LOGIN_FAILED_TOPIC);
         // Note: In your implementation, the key is sanitizeClientId(clientId), which
         // for "client-123" returns "client-123"
-        assertThat(record.key()).isEqualTo("client-123");
+        assertThat(producerRecord.key()).isEqualTo("client-123");
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(AuthEventType.LOGIN_FAILED);
         assertThat(event.clientId()).isEqualTo(clientId);
         assertThat(event.clientType()).isEqualTo(clientType);
@@ -190,12 +189,12 @@ class AuthEventProducerTest {
                 .verifyComplete();
 
         // Verify the captured record
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        assertThat(record.topic()).isEqualTo(LOGIN_FAILED_TOPIC);
-        assertThat(record.key()).isEqualTo(maskedIp);
+        assertThat(producerRecord.topic()).isEqualTo(LOGIN_FAILED_TOPIC);
+        assertThat(producerRecord.key()).isEqualTo(maskedIp);
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(AuthEventType.INVALID_API_KEY);
         assertThat(event.ipAddress()).isEqualTo(maskedIp);
         assertThat(event.success()).isFalse();
@@ -216,9 +215,9 @@ class AuthEventProducerTest {
                 .verifyComplete();
 
         // Verify the captured record
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(AuthEventType.RATE_LIMIT_EXCEEDED);
         assertThat(event.clientId()).isEqualTo(clientId);
         assertThat(event.ipAddress()).isEqualTo("192.168.1.xxx");
@@ -242,12 +241,12 @@ class AuthEventProducerTest {
                 .verifyComplete();
 
         // Verify the captured record
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        assertThat(record.topic()).isEqualTo(TOKENS_TOPIC);
-        assertThat(record.key()).isEqualTo(clientId); // sanitizeClientId returns clientId for non-email
+        assertThat(producerRecord.topic()).isEqualTo(TOKENS_TOPIC);
+        assertThat(producerRecord.key()).isEqualTo(clientId); // sanitizeClientId returns clientId for non-email
 
-        TokenEvent event = (TokenEvent) record.value();
+        TokenEvent event = (TokenEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(TokenEvent.TokenEventType.GENERATED);
         assertThat(event.tokenId()).isEqualTo("toke...-123");
         assertThat(event.clientId()).isEqualTo(clientId);
@@ -270,9 +269,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishTokenRefreshed(tokenId, clientId, clientType, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        TokenEvent event = (TokenEvent) record.value();
+        TokenEvent event = (TokenEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(TokenEvent.TokenEventType.REFRESHED);
         assertThat(event.tokenId()).isEqualTo("toke...-123");
         assertThat(event.clientId()).isEqualTo(clientId);
@@ -291,9 +290,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishTokenRevoked(tokenId, clientId))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        TokenEvent event = (TokenEvent) record.value();
+        TokenEvent event = (TokenEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(TokenEvent.TokenEventType.REVOKED);
         assertThat(event.tokenId()).isEqualTo("toke...-123");
         assertThat(event.clientId()).isEqualTo(clientId);
@@ -312,9 +311,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishTokenValidated(tokenId, clientId))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        TokenEvent event = (TokenEvent) record.value();
+        TokenEvent event = (TokenEvent) producerRecord.value();
         assertThat(event.eventType()).isEqualTo(TokenEvent.TokenEventType.VALIDATED);
         assertThat(event.tokenId()).isEqualTo("toke...-123");
         assertThat(event.clientId()).isEqualTo(clientId);
@@ -353,9 +352,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishRateLimitExceeded(null, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        assertThat(record.key()).isEqualTo(maskedIp);
+        assertThat(producerRecord.key()).isEqualTo(maskedIp);
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
 
@@ -371,9 +370,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.ipAddress()).isEqualTo("192.168.1.xxx");
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -391,9 +390,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.clientId()).isEqualTo(maskedClientId);
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -409,9 +408,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishTokenGenerated(tokenId, clientId, "web", "192.168.1.1"))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        TokenEvent event = (TokenEvent) record.value();
+        TokenEvent event = (TokenEvent) producerRecord.value();
         assertThat(event.tokenId()).isEqualTo("abcd...ijkl");
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -427,9 +426,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishLoginFailed(clientId, "web", "192.168.1.1", reason))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.failureReason()).isEqualTo("Invalid password=*** for user");
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -484,9 +483,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishTokenGenerated(tokenId, clientId, "web", "192.168.1.1"))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        TokenEvent event = (TokenEvent) record.value();
+        TokenEvent event = (TokenEvent) producerRecord.value();
         assertThat(event.tokenId()).isEqualTo("***");
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -503,9 +502,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.clientId()).isEqualTo(clientId);
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -522,9 +521,9 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
-        AuthEvent event = (AuthEvent) record.value();
+        AuthEvent event = (AuthEvent) producerRecord.value();
         assertThat(event.ipAddress()).isEqualTo("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx");
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
@@ -541,10 +540,10 @@ class AuthEventProducerTest {
         StepVerifier.create(authEventProducer.publishLoginSuccess(clientId, clientType, ipAddress))
                 .verifyComplete();
 
-        ProducerRecord<String, Object> record = getLastCapturedRecord();
+        ProducerRecord<String, Object> producerRecord = getLastCapturedRecord();
 
         // In your implementation, the key is the original clientId, not sanitized
-        assertThat(record.key()).isEqualTo(clientId);
+        assertThat(producerRecord.key()).isEqualTo(clientId);
         verify(kafkaSender, times(1)).send(any(Mono.class));
     }
 }
