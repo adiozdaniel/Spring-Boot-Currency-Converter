@@ -1,6 +1,7 @@
 package com.example.authservice.service.impl;
 
 import com.example.authservice.config.JwtConfig;
+import com.example.authservice.constant.AuthConstants;
 import com.example.authservice.dto.AuthRequest;
 import com.example.authservice.dto.AuthResponse;
 import com.example.authservice.exception.InvalidApiKeyException;
@@ -71,12 +72,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     this.jwtConfig = jwtConfig;
 
     this.authSuccessCounter = Counter.builder("auth.attempts")
-        .tag("result", "success")
+        .tag(AuthConstants.RESULT, AuthConstants.SUCCESS)
         .description("Number of successful authentication attempts")
         .register(meterRegistry);
 
     this.authFailureCounter = Counter.builder("auth.attempts")
-        .tag("result", "failure")
+        .tag(AuthConstants.RESULT, AuthConstants.FAILURE)
         .description("Number of failed authentication attempts")
         .register(meterRegistry);
   }
@@ -90,7 +91,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     Mono<AuthResponse> authOperation = apiKeyValidator.isValid(request.getApiKey())
         .flatMap(valid -> {
-          if (!valid) {
+          if (!valid.booleanValue()) {
             authFailureCounter.increment();
             authEventProducer.ifPresent(producer -> producer.publishInvalidApiKey(clientIp));
             logger.warn("Authentication failed - invalid API key from IP: {}", clientIp);
@@ -150,13 +151,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     return tokenService.validateRefreshToken(refreshToken)
         .flatMap(claims -> {
           String clientId = claims.getSubject();
-          String clientType = claims.get("clientType", String.class);
+          String clientType = claims.get(AuthConstants.CLIENT_TYPE, String.class);
 
           // Revoke old refresh token
           return tokenService.revokeToken(refreshToken)
-              .then(Mono.defer(() -> {
-                // Generate new tokens
-                return tokenService.generateAccessToken(clientId, clientType, null)
+              .then(Mono.defer(() -> tokenService.generateAccessToken(clientId, clientType, null)
                     .zipWith(tokenService.generateRefreshToken(clientId, clientType))
                     .flatMap(tuple -> {
                       String newAccessToken = tuple.getT1();
@@ -173,10 +172,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                           .thenReturn(new AuthResponse(
                               newAccessToken,
                               newRefreshToken,
-                              "Bearer",
+                              AuthConstants.BEARER,
                               jwtConfig.getExpiration() / 1000));
-                    });
-              }));
+                    })
+              ));
         });
   }
 
@@ -214,12 +213,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
           authEventProducer.ifPresent(producer -> producer.publishTokenValidated(tokenId, clientId));
 
           Map<String, Object> result = new HashMap<>();
-          result.put("valid", true);
-          result.put("subject", clientId);
-          result.put("clientType", claims.get("clientType"));
-          result.put("expiresAt", claims.getExpiration());
-          result.put("issuedAt", claims.getIssuedAt());
-
+          result.put(AuthConstants.VALID, true);
+          result.put(AuthConstants.SUBJECT, clientId);
+          result.put(AuthConstants.CLIENT_TYPE, claims.get(AuthConstants.CLIENT_TYPE));
+          result.put(AuthConstants.EXPIRES_AT, claims.getExpiration());
+          result.put(AuthConstants.ISSUED_AT, claims.getIssuedAt());
           return Mono.just(result);
         });
   }

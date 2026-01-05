@@ -107,10 +107,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
           .success(true)
           .build();
 
-      ProducerRecord<String, Object> record = new ProducerRecord<>(loginSuccessTopic, clientId, event);
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(loginSuccessTopic, clientId, event);
 
       return kafkaSender.send(
-          Mono.just(SenderRecord.create(record, null)))
+          Mono.just(SenderRecord.create(producerRecord, null)))
           .then()
           .doOnSuccess(v -> {
             eventsPublishedCounter.increment();
@@ -147,9 +147,9 @@ public class AuthEventProducerImpl implements AuthEventProducer {
 
     String sanitizedKey = clientId != null ? sanitizeClientId(clientId) : maskIpAddress(ipAddress);
 
-    ProducerRecord<String, Object> record = new ProducerRecord<>(loginFailedTopic, sanitizedKey, event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(loginFailedTopic, sanitizedKey, event);
 
-    return kafkaSender.send(Mono.just(SenderRecord.create(record, null)))
+    return kafkaSender.send(Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {
@@ -177,10 +177,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
 
     String sanitizedKey = maskIpAddress(ipAddress);
 
-    ProducerRecord<String, Object> record = new ProducerRecord<>(loginFailedTopic, sanitizedKey, event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(loginFailedTopic, sanitizedKey, event);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {
@@ -208,10 +208,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
         .build();
 
     String sanitizedKey = clientId != null ? sanitizeClientId(clientId) : maskIpAddress(ipAddress);
-    ProducerRecord<String, Object> record = new ProducerRecord<>(loginFailedTopic, sanitizedKey, event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(loginFailedTopic, sanitizedKey, event);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {
@@ -240,10 +240,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
         .ipAddress(maskIpAddress(ipAddress))
         .build();
 
-    ProducerRecord<String, Object> record = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {
@@ -272,10 +272,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
         .ipAddress(maskIpAddress(ipAddress))
         .build();
 
-    ProducerRecord<String, Object> record = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {
@@ -300,10 +300,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
         .clientId(sanitizeClientId(clientId))
         .build();
 
-    ProducerRecord<String, Object> record = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {
@@ -328,10 +328,10 @@ public class AuthEventProducerImpl implements AuthEventProducer {
         .clientId(sanitizeClientId(clientId))
         .build();
 
-    ProducerRecord<String, Object> record = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
+    ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(tokensTopic, sanitizeClientId(clientId), event);
 
     return kafkaSender.send(
-        Mono.just(SenderRecord.create(record, null)))
+        Mono.just(SenderRecord.create(producerRecord, null)))
         .then()
         .doOnSuccess(v -> eventsPublishedCounter.increment())
         .doOnError(ex -> {

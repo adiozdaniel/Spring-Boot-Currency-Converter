@@ -72,10 +72,25 @@ public class ApiKeyValidatorImpl implements ApiKeyValidator {
         return null;
       }
 
-      return apiKey.equals(apiKeyConfig.getWeb()) ? "web"
-          : apiKey.equals(apiKeyConfig.getMobile()) ? "mobile"
-              : apiKey.equals(apiKeyConfig.getPlatform()) ? "platform" : null;
+      return determineClientType(apiKey);
     }).flatMap(clientType -> clientType != null ? Mono.just(clientType) : Mono.empty());
+  }
+
+  /**
+   * Determines the client type based on the provided API key.
+   *
+   * @param apiKey the API key to check
+   * @return the client type ("web", "mobile", "platform") or null if not found
+   */
+  private String determineClientType(String apiKey) {
+    if (apiKey.equals(apiKeyConfig.getWeb())) {
+      return "web";
+    } else if (apiKey.equals(apiKeyConfig.getMobile())) {
+      return "mobile";
+    } else if (apiKey.equals(apiKeyConfig.getPlatform())) {
+      return "platform";
+    }
+    return null;
   }
 
   /**

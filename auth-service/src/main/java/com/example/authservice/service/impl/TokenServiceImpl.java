@@ -1,6 +1,7 @@
 package com.example.authservice.service.impl;
 
 import com.example.authservice.config.JwtConfig;
+import com.example.authservice.constant.AuthConstants;
 import com.example.authservice.exception.InvalidTokenException;
 import com.example.authservice.exception.TokenRevokedException;
 import com.example.authservice.service.TokenService;
@@ -73,7 +74,7 @@ public class TokenServiceImpl implements TokenService {
                     .id(UUID.randomUUID().toString()) // JTI - Unique token ID
                     .subject(clientId)
                     .claim("type", "access")
-                    .claim("clientType", clientType)
+                    .claim(AuthConstants.CLIENT_TYPE, clientType)
                     .issuedAt(now)
                     .expiration(expiry);
 
@@ -99,7 +100,7 @@ public class TokenServiceImpl implements TokenService {
                     .id(UUID.randomUUID().toString()) // JTI - Unique token ID
                     .subject(clientId)
                     .claim("type", "refresh")
-                    .claim("clientType", clientType)
+                    .claim(AuthConstants.CLIENT_TYPE, clientType)
                     .issuedAt(now)
                     .expiration(expiry)
                     .signWith(signingKey)
@@ -124,7 +125,7 @@ public class TokenServiceImpl implements TokenService {
                     // Check if token is revoked in Redis
                     return checkRevokedInRedis(jti)
                             .flatMap(revoked -> {
-                                if (revoked) {
+                                if (revoked.booleanValue()) {
                                     return Mono.error(new TokenRevokedException("Token has been revoked"));
                                 }
                                 return Mono.just(claims);
