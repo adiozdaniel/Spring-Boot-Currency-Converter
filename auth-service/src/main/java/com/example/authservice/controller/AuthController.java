@@ -2,13 +2,11 @@ package com.example.authservice.controller;
 
 import com.example.authservice.dto.AuthRequest;
 import com.example.authservice.dto.AuthResponse;
+import com.example.authservice.utility.HttpUtilities;
 import com.example.authservice.dto.RevokeTokenRequest;
 import com.example.authservice.dto.RefreshTokenRequest;
 import com.example.authservice.service.AuthenticationService;
-import com.example.authservice.exception.UnknownIpAddressException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.authservice.constant.HttpSecurityConstants;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +20,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
@@ -30,8 +31,8 @@ import reactor.core.publisher.Mono;
  * REST controller for handling authentication-related requests.
  * <p>
  * This controller provides endpoints for token issuance, refreshment,
- * revocation,
- * and validation.
+ * revocation, and validation.
+ * Optimized for performance and security.
  * </p>
  */
 @RestController
@@ -43,12 +44,6 @@ public class AuthController {
 
     private final AuthenticationService authenticationService;
 
-    /**
-     * Constructs a new {@link AuthController} with the specified authentication
-     * service.
-     *
-     * @param authenticationService the service for handling authentication logic.
-     */
     public AuthController(AuthenticationService authenticationService) {
         this.authenticationService = authenticationService;
     }
@@ -73,9 +68,14 @@ public class AuthController {
             @Valid @RequestBody AuthRequest request,
             ServerHttpRequest httpRequest) {
 
-        return Mono.fromSupplier(() -> getClientIp(httpRequest))
-                .doOnNext(ip -> logger.info("Authentication request from IP: {}", ip))
-                .flatMap(clientIp -> authenticationService.authenticate(request, clientIp))
+        // Extract IP synchronously (no need for Mono.fromSupplier overhead)
+        String clientIp = HttpUtilities.getClientIp(httpRequest);
+
+        if (logger.isInfoEnabled()) {
+            logger.info("Authentication request from IP: {}", clientIp);
+        }
+
+        return authenticationService.authenticate(request, clientIp)
                 .map(ResponseEntity::ok);
     }
 
@@ -98,9 +98,13 @@ public class AuthController {
             @Valid @RequestBody RefreshTokenRequest request,
             ServerHttpRequest httpRequest) {
 
-        return Mono.fromSupplier(() -> getClientIp(httpRequest))
-                .doOnNext(ip -> logger.info("Token refresh request from IP: {}", ip))
-                .flatMap(clientIp -> authenticationService.refreshToken(request.getRefreshToken(), clientIp))
+        String clientIp = HttpUtilities.getClientIp(httpRequest);
+
+        if (logger.isInfoEnabled()) {
+            logger.info("Token refresh request from IP: {}", clientIp);
+        }
+
+        return authenticationService.refreshToken(request.getRefreshToken(), clientIp)
                 .map(ResponseEntity::ok);
     }
 
@@ -121,8 +125,12 @@ public class AuthController {
             @Valid @RequestBody RevokeTokenRequest request) {
 
         return authenticationService.revokeToken(request.getToken())
-                .doOnSuccess(v -> logger.info("Token successfully revoked"))
-                .thenReturn(ResponseEntity.ok(Map.of("message", "Token revoked successfully")));
+                .doOnSuccess(v -> {
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Token successfully revoked");
+                    }
+                })
+                .thenReturn(ResponseEntity.ok(HttpSecurityConstants.REVOKE_SUCCESS_RESPONSE));
     }
 
     /**
@@ -141,51 +149,9 @@ public class AuthController {
     public Mono<ResponseEntity<Map<String, Object>>> validateToken(
             @RequestHeader("Authorization") String authHeader) {
 
-        String token = extractToken(authHeader);
+        String token = HttpUtilities.extractToken(authHeader);
 
         return authenticationService.validateToken(token)
                 .map(ResponseEntity::ok);
-    }
-
-    /**
-     * Extracts the client's IP address from the request headers.
-     * <p>
-     * It checks for "X-Forwarded-For" and "X-Real-IP" headers before falling
-     * back to the remote address of the request.
-     * </p>
-     *
-     * @param request the server HTTP request.
-     * @return the client's IP address.
-     * @throws UnknownIpAddressException if IP address cannot be determined.
-     */
-    private String getClientIp(ServerHttpRequest request) {
-        String xForwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = request.getHeaders().getFirst("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-
-        if (request.getRemoteAddress() != null) {
-            return request.getRemoteAddress().getAddress().getHostAddress();
-        }
-
-        throw new UnknownIpAddressException();
-    }
-
-    /**
-     * Extracts the JWT from the Authorization header.
-     *
-     * @param authHeader the Authorization header string.
-     * @return the token string or the original header if not a Bearer token.
-     */
-    private String extractToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        return authHeader;
     }
 }

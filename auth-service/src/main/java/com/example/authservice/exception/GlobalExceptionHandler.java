@@ -5,8 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.example.authservice.constant.ExceptionConstants;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
@@ -36,8 +37,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidApiKeyException(InvalidApiKeyException ex) {
         logger.warn("Invalid API key attempt: {}", ex.getMessage());
         Map<String, String> error = new HashMap<>();
-        error.put("error", "unauthorized");
-        error.put("message", ex.getMessage());
+        error.put(ExceptionConstants.ERROR, ExceptionConstants.UNAUTHORIZED);
+        error.put(ExceptionConstants.MESSAGE, ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
@@ -53,8 +54,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidTokenException(InvalidTokenException ex) {
         logger.warn("Invalid token: {}", ex.getMessage());
         Map<String, String> error = new HashMap<>();
-        error.put("error", "invalid_token");
-        error.put("message", ex.getMessage());
+        error.put(ExceptionConstants.ERROR, ExceptionConstants.INVALID_TOKEN);
+        error.put(ExceptionConstants.MESSAGE, ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
@@ -70,8 +71,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleTokenRevokedException(TokenRevokedException ex) {
         logger.warn("Revoked token used: {}", ex.getMessage());
         Map<String, String> error = new HashMap<>();
-        error.put("error", "token_revoked");
-        error.put("message", ex.getMessage());
+        error.put(ExceptionConstants.ERROR, ExceptionConstants.TOKEN_REVOKED);
+        error.put(ExceptionConstants.MESSAGE, ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
@@ -87,8 +88,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleRateLimitExceededException(RateLimitExceededException ex) {
         logger.warn("Rate limit exceeded: {}", ex.getMessage());
         Map<String, String> error = new HashMap<>();
-        error.put("error", "rate_limit_exceeded");
-        error.put("message", ex.getMessage());
+        error.put(ExceptionConstants.ERROR, ExceptionConstants.RATE_LIMIT_EXCEEDED);
+        error.put(ExceptionConstants.MESSAGE, ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
     }
 
@@ -112,8 +113,8 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        response.put("error", "validation_failed");
-        response.put("errors", errors);
+        response.put(ExceptionConstants.ERROR, ExceptionConstants.VALIDATION_FAILED);
+        response.put(ExceptionConstants.ERRORS, errors);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -131,8 +132,8 @@ public class GlobalExceptionHandler {
         logger.warn("Request rejected - unknown IP Address");
 
         Map<String, String> error = new HashMap<>();
-        error.put("error", "forbidden");
-        error.put("message", "Unable to determine client IP address");
+        error.put(ExceptionConstants.ERROR, ExceptionConstants.FORBIDDEN);
+        error.put(ExceptionConstants.MESSAGE, ExceptionConstants.UNKNOWN_IP_ADDRESS_MESSAGE);
 
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
@@ -149,8 +150,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleGlobalException(Exception ex) {
         logger.error("Unhandled exception occurred: ", ex);
         Map<String, String> error = new HashMap<>();
-        error.put("error", "internal_server_error");
-        error.put("message", "An unexpected error occurred");
+        error.put(ExceptionConstants.ERROR, ExceptionConstants.INTERNAL_SERVER_ERROR);
+        error.put(ExceptionConstants.MESSAGE, ExceptionConstants.UNEXPECTED_ERROR_MESSAGE);
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
