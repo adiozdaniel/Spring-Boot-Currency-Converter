@@ -15,19 +15,21 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 /**
  * Configuration class for web security.
  * <p>
- * This class enables web security and configures CORS, CSRF, session management,
+ * This class enables web security and configures CORS, CSRF, session
+ * management,
  * and request authorization rules for the application.
  * </p>
  */
 @Configuration
 @EnableWebFluxSecurity
-@EnableReactiveMethodSecurity 
+@EnableReactiveMethodSecurity
 public class SecurityConfig {
 
     private final CorsConfig corsConfig;
 
     /**
-     * Constructs a new {@link SecurityConfig} with the specified CORS configuration.
+     * Constructs a new {@link SecurityConfig} with the specified CORS
+     * configuration.
      *
      * @param corsConfig the CORS configuration properties.
      */
@@ -51,7 +53,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .pathMatchers("/actuator/health", "/actuator/info",
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+                                "/webjars/**", "/swagger-resources/**",
+                                "/v3/api-docs")
+                        .permitAll()
                         .pathMatchers("/v*/auth/**").permitAll()
                         .pathMatchers("/actuator/**").authenticated()
                         .anyExchange().authenticated())
