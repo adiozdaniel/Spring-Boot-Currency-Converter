@@ -22,9 +22,12 @@
 		<bucket4j.version>8.10.1</bucket4j.version>
 		<resilience4j.version>2.2.0</resilience4j.version>
 		<avro.version>1.12.0</avro.version>
+		<yawk.version>1.10.1</yawk.version>
+		<lz4.version>1.8.1</lz4.version>
+		<commons-lang3.version>3.18.0</commons-lang3.version>
 		<confluent.version>7.5.1</confluent.version>
 		<springdoc.version>2.8.15</springdoc.version>
-		<reactor-kafka.version>1.3.20</reactor-kafka.version>
+		<reactor-kafka.version>1.3.25</reactor-kafka.version>
 
 		<!-- SonarQube Coverage Exclusions -->
 		<sonar.exclusions>
@@ -229,6 +232,23 @@
 				<version>${spring-cloud.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			
+			<!-- Override vulnerable dependencies -->
+			<dependency>
+					<groupId>at.yawk.lz4</groupId>
+					<artifactId>lz4-java</artifactId>
+					<version>${yawk.version}</version>
+			</dependency>
+		  <dependency>
+				<groupId>org.lz4</groupId>
+				<artifactId>lz4-java</artifactId>
+				<version>${lz4.version}</version>
+  		</dependency>
+			<dependency>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-lang3</artifactId>
+					<version>${commons-lang3.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
