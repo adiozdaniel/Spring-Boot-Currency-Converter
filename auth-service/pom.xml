@@ -17,10 +17,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
-		<sonar.organization>currency-converter</sonar.organization>
-		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<jacoco.version>0.8.11</jacoco.version>
-		<dependency-check.version>9.0.7</dependency-check.version>
 		<jjwt.version>0.12.7</jjwt.version>
 		<bucket4j.version>8.10.1</bucket4j.version>
 		<resilience4j.version>2.2.0</resilience4j.version>
@@ -311,30 +308,6 @@
 					<exclude>com/example/authservice/AuthServiceApplication.class</exclude>
 					</excludes>
 				</configuration>
-			</plugin>
-
-			<!-- OWASP Dependency Check - run manually with: mvn dependency-check:check -->
-			<plugin>
-				<groupId>org.owasp</groupId>
-				<artifactId>dependency-check-maven</artifactId>
-				<version>${dependency-check.version}</version>
-				<configuration>
-					<failBuildOnCVSS>7</failBuildOnCVSS>
-					<skipProvidedScope>true</skipProvidedScope>
-					<skipRuntimeScope>false</skipRuntimeScope>
-					<formats>
-						<format>HTML</format>
-						<format>JSON</format>
-					</formats>
-					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-				</configuration>
-			</plugin>
-
-			<!-- SonarQube Maven Plugin -->
-			<plugin>
-				<groupId>org.sonarsource.scanner.maven</groupId>
-				<artifactId>sonar-maven-plugin</artifactId>
-				<version>3.10.0.2594</version>
 			</plugin>
 		</plugins>
 	</build>
