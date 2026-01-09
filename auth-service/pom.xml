@@ -3,64 +3,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.9</version>
-		<relativePath/>
-	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>auth-service</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>auth-service</name>
+    <groupId>com.currency-converter</groupId>
+    <artifactId>currency-converter-parent</artifactId>
+    <version>2.0.0</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>auth-service</artifactId>
+  <name>auth-service</name>
 	<description>Authentication Service for Currency Converter</description>
-
-	<properties>
-		<java.version>21</java.version>
-		<spring-cloud.version>2025.0.0</spring-cloud.version>
-		<jacoco.version>0.8.11</jacoco.version>
-		<jjwt.version>0.12.7</jjwt.version>
-		<bucket4j.version>8.10.1</bucket4j.version>
-		<resilience4j.version>2.2.0</resilience4j.version>
-		<avro.version>1.12.0</avro.version>
-		<yawk.version>1.10.1</yawk.version>
-		<lz4.version>1.8.1</lz4.version>
-		<commons-lang3.version>3.18.0</commons-lang3.version>
-		<confluent.version>7.5.1</confluent.version>
-		<springdoc.version>2.8.15</springdoc.version>
-		<reactor-kafka.version>1.3.25</reactor-kafka.version>
-
-		<!-- SonarQube Coverage Exclusions -->
-		<sonar.exclusions>
-			**/config/**/*.java,
-			**/constant/**/*.java,
-			**/dto/**/*.java,
-			**/event/**/*.java,
-			**/exception/**/*.java,
-			**/filter/**/*.java,
-			**/kafka/**/*.java,
-			**/model/**/*.java,
-			**/constant/**/*.java,
-			**/entity/**/*.java,
-			**/repository/**/*.java,
-			**/AuthServiceApplication.java,
-			com/example/authservice/AuthServiceApplication.java
-		</sonar.exclusions>
-		<sonar.coverage.exclusions>
-			**/config/**/*.java,
-			**/constant/**/*.java,
-			**/dto/**/*.java,
-			**/event/**/*.java,
-			**/exception/**/*.java,
-			**/filter/**/*.java,
-			**/kafka/**/*.java,
-			**/model/**/*.java,
-			**/constant/**/*.java,
-			**/entity/**/*.java,
-			**/repository/**/*.java,
-			**/AuthServiceApplication.java,
-			com/example/authservice/AuthServiceApplication.java
-		</sonar.coverage.exclusions>
-	</properties>
 
 	<dependencies>
 		<!-- Spring Boot Starters -->
@@ -91,18 +42,15 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
-			<version>${jjwt.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-impl</artifactId>
-			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-jackson</artifactId>
-			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 
@@ -110,24 +58,20 @@
 		<dependency>
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j-core</artifactId>
-			<version>${bucket4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
 			<artifactId>resilience4j-reactor</artifactId>
-			<version>${resilience4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
 			<artifactId>resilience4j-ratelimiter</artifactId>
-			<version>${resilience4j.version}</version>
 		</dependency>
 
 		<!-- Kafka - Reactive -->
 		<dependency>
 			<groupId>io.projectreactor.kafka</groupId>
 			<artifactId>reactor-kafka</artifactId>
-			<version>${reactor-kafka.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
@@ -144,12 +88,10 @@
 		<dependency>
 			<groupId>org.apache.avro</groupId>
 			<artifactId>avro</artifactId>
-			<version>${avro.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.confluent</groupId>
 			<artifactId>kafka-avro-serializer</artifactId>
-			<version>${confluent.version}</version>
       <exclusions>
 				<exclusion>
 					<groupId>io.swagger.core.v3</groupId>
@@ -181,7 +123,6 @@
   	<dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-      <version>${springdoc.version}</version>
   	</dependency>
 
 		<!-- Spring Cloud Config Client -->
@@ -217,119 +158,18 @@
 		</dependency>
 	</dependencies>
 
-	<repositories>
-		<repository>
-			<id>confluent</id>
-			<url>https://packages.confluent.io/maven/</url>
-		</repository>
-	</repositories>
-
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>${spring-cloud.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-			
-			<!-- Override vulnerable dependencies -->
-			<dependency>
-					<groupId>at.yawk.lz4</groupId>
-					<artifactId>lz4-java</artifactId>
-					<version>${yawk.version}</version>
-			</dependency>
-		  <dependency>
-				<groupId>org.lz4</groupId>
-				<artifactId>lz4-java</artifactId>
-				<version>${lz4.version}</version>
-  		</dependency>
-			<dependency>
-					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-lang3</artifactId>
-					<version>${commons-lang3.version}</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.springframework.boot</groupId>
-							<artifactId>spring-boot-configuration-processor</artifactId>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-
-			<!-- JaCoCo for code coverage -->
-			<plugin>
-				<groupId>org.jacoco</groupId>
-				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>${jacoco.version}</version>
-				<executions>
-					<execution>
-						<id>prepare-agent</id>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>report</id>
-						<phase>test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>jacoco-check</id>
-						<goals>
-							<goal>check</goal>
-						</goals>
-						<configuration>
-							<rules>
-								<rule>
-									<element>BUNDLE</element>
-									<limits>
-										<limit>
-											<counter>INSTRUCTION</counter>
-											<value>COVEREDRATIO</value>
-											<minimum>0.80</minimum>
-										</limit>
-									</limits>
-								</rule>
-							</rules>
-						</configuration>
-					</execution>
-				</executions>
-				<configuration>
-					<excludes>
-						<exclude>**/config/**</exclude>
-						<exclude>**/dto/**</exclude>
-						<exclude>**/event/**</exclude>
-						<exclude>**/exception/**</exclude>
-						<exclude>**/filter/**</exclude>
-						<exclude>**/kafka/**</exclude>
-						<exclude>**/model/**</exclude>
-						<exclude>**/constant/**</exclude>
-						<exclude>**/entity/**</exclude>
-						<exclude>**/repository/**</exclude>
-						<exclude>**/AuthServiceApplication.class</exclude>
-					<exclude>com/example/authservice/AuthServiceApplication.class</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
+      
+			<!-- JaCoCo for Code Coverage -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
 		</plugins>
 	</build>
-
 </project>
