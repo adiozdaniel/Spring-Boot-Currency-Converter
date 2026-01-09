@@ -1,135 +1,72 @@
 package com.example.authservice.event;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
-public class TokenEvent {
+/**
+ * Represents a token-related event.
+ * <p>
+ * This record encapsulates details about a token event, such as its type,
+ * the token and client involved, and the outcome. It is designed to be immutable.
+ * </p>
+ *
+ * @param eventId       the unique identifier for the event.
+ * @param eventType     the type of token event.
+ * @param tokenId       the identifier of the token.
+ * @param clientId      the identifier of the client.
+ * @param clientType    the type of the client (e.g., "web", "mobile").
+ * @param timestamp     the time at which the event occurred.
+ * @param tokenExpiry   the expiration time of the token.
+ * @param ipAddress     the IP address from which the event originated.
+ * @param success       a flag indicating whether the operation was successful.
+ * @param failureReason the reason for failure, if applicable.
+ * @param metadata      additional metadata associated with the event.
+ */
+public record TokenEvent(
+        String eventId,
+        TokenEventType eventType,
+        String tokenId,
+        String clientId,
+        String clientType,
+        Instant timestamp,
+        Instant tokenExpiry,
+        String ipAddress,
+        boolean success,
+        String failureReason,
+        Map<String, Object> metadata) {
 
-    private String eventId;
-    private TokenEventType eventType;
-    private String tokenId;
-    private String clientId;
-    private String clientType;
-    private Instant timestamp;
-    private Instant tokenExpiry;
-    private String ipAddress;
-
-    public TokenEvent() {
-        this.eventId = UUID.randomUUID().toString();
-        this.timestamp = Instant.now();
+    /**
+     * Creates a new {@link TokenEventBuilder} for constructing a {@link TokenEvent}.
+     *
+     * @return a new instance of {@link TokenEventBuilder}.
+     */
+    public static TokenEventBuilder builder() {
+        return new TokenEventBuilder();
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public String getEventId() {
-        return eventId;
-    }
-
-    public void setEventId(String eventId) {
-        this.eventId = eventId;
-    }
-
-    public TokenEventType getEventType() {
-        return eventType;
-    }
-
-    public void setEventType(TokenEventType eventType) {
-        this.eventType = eventType;
-    }
-
-    public String getTokenId() {
-        return tokenId;
-    }
-
-    public void setTokenId(String tokenId) {
-        this.tokenId = tokenId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getClientType() {
-        return clientType;
-    }
-
-    public void setClientType(String clientType) {
-        this.clientType = clientType;
-    }
-
-    public Instant getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Instant timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public Instant getTokenExpiry() {
-        return tokenExpiry;
-    }
-
-    public void setTokenExpiry(Instant tokenExpiry) {
-        this.tokenExpiry = tokenExpiry;
-    }
-
-    public String getIpAddress() {
-        return ipAddress;
-    }
-
-    public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
-    }
-
+    /**
+     * Enumeration of token event types.
+     */
     public enum TokenEventType {
+        /**
+         * A new token was generated.
+         */
         GENERATED,
+        /**
+         * A token was refreshed.
+         */
         REFRESHED,
+        /**
+         * A token was revoked.
+         */
         REVOKED,
+        /**
+         * A token was successfully validated.
+         */
         VALIDATED,
+        /**
+         * A token has expired.
+         */
         EXPIRED
-    }
-
-    public static class Builder {
-        private final TokenEvent event = new TokenEvent();
-
-        public Builder eventType(TokenEventType eventType) {
-            event.eventType = eventType;
-            return this;
-        }
-
-        public Builder tokenId(String tokenId) {
-            event.tokenId = tokenId;
-            return this;
-        }
-
-        public Builder clientId(String clientId) {
-            event.clientId = clientId;
-            return this;
-        }
-
-        public Builder clientType(String clientType) {
-            event.clientType = clientType;
-            return this;
-        }
-
-        public Builder tokenExpiry(Instant tokenExpiry) {
-            event.tokenExpiry = tokenExpiry;
-            return this;
-        }
-
-        public Builder ipAddress(String ipAddress) {
-            event.ipAddress = ipAddress;
-            return this;
-        }
-
-        public TokenEvent build() {
-            return event;
-        }
     }
 }
