@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Property for application name -->
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="unknown"/>
+
+    <!-- Console appender with request ID, colors, and pipe separators -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(|){faint} Severity=%clr(%-5p){highlight} %clr(|){faint} Microservice=%clr(${APP_NAME}){magenta} %clr(|){faint} RequestID=%clr(%X{requestId:-NO-REQUEST-ID}){cyan} %clr(|){faint} Thread=%clr([%15.15t]){faint} %clr(|){faint} Logger=%clr(%logger{36}){blue} %clr(|){faint} %m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- File appender with request ID and structured format (no colors) -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/auth-service.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/auth-service.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} | Severity=%-5p | Microservice=${APP_NAME} | RequestID=%X{requestId:-NO-REQUEST-ID} | Thread=[%15.15t] | Logger=%logger{36} | %m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- Your application logger -->
+    <logger name="com.example.authservice" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Spring framework (reduce noise) -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.springframework.web" level="DEBUG"/>
+
+    <!-- Reactor (optional - can be noisy) -->
+    <logger name="reactor" level="INFO"/>
+</configuration>

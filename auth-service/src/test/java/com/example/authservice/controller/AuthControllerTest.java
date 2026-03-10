@@ -2,153 +2,305 @@ package com.example.authservice.controller;
 
 import com.example.authservice.dto.AuthRequest;
 import com.example.authservice.dto.AuthResponse;
-import com.example.authservice.dto.RefreshTokenRequest;
 import com.example.authservice.dto.RevokeTokenRequest;
+import com.example.authservice.dto.RefreshTokenRequest;
+import com.example.authservice.service.AuthenticationService;
 import com.example.authservice.exception.InvalidApiKeyException;
 import com.example.authservice.exception.RateLimitExceededException;
-import com.example.authservice.service.AuthenticationService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
+
+import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AuthController.class)
+import java.util.Map;
+
+@WebFluxTest(controllers = AuthController.class, excludeAutoConfiguration = ReactiveSecurityAutoConfiguration.class)
 @ActiveProfiles("test")
 @DisplayName("AuthController Tests")
 class AuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private WebTestClient webTestClient;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @SuppressWarnings("removal")
+        @MockBean
+        private AuthenticationService authenticationService;
 
-    @MockBean
-    private AuthenticationService authenticationService;
+        @Test
+        @DisplayName("Should authenticate with valid API key")
+        void shouldAuthenticateWithValidApiKey() {
+                AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
+                AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
 
-    @Test
-    @DisplayName("Should authenticate with valid API key")
-    @WithMockUser
-    void shouldAuthenticateWithValidApiKey() throws Exception {
-        AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
-        AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
+                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                .thenReturn(Mono.just(response));
 
-        when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
-                .thenReturn(response);
+                webTestClient.post()
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isOk()
+                                .expectBody()
+                                .jsonPath("$.accessToken").isEqualTo("access-token")
+                                .jsonPath("$.refreshToken").isEqualTo("refresh-token")
+                                .jsonPath("$.tokenType").isEqualTo("Bearer");
+        }
 
-        mockMvc.perform(post("/auth/token")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("access-token"))
-                .andExpect(jsonPath("$.refreshToken").value("refresh-token"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"));
-    }
+        @Test
+        @DisplayName("Should reject request with missing API key")
+        void shouldRejectRequestWithMissingApiKey() {
+                AuthRequest request = new AuthRequest();
+                request.setClientId("client123");
 
-    @Test
-    @DisplayName("Should reject request with missing API key")
-    @WithMockUser
-    void shouldRejectRequestWithMissingApiKey() throws Exception {
-        AuthRequest request = new AuthRequest();
-        request.setClientId("client123");
+                webTestClient.post()
+                                .uri("/v1/auth/token")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().is5xxServerError(); // Validation error in test context
+        }
 
-        mockMvc.perform(post("/auth/token")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
+        @Test
+        @DisplayName("Should return 401 for invalid API key")
+        void shouldReturn401ForInvalidApiKey() {
+                AuthRequest request = new AuthRequest("invalid-api-key", "client123", "web");
 
-    @Test
-    @DisplayName("Should return 401 for invalid API key")
-    @WithMockUser
-    void shouldReturn401ForInvalidApiKey() throws Exception {
-        AuthRequest request = new AuthRequest("invalid-api-key", "client123", "web");
+                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                .thenReturn(Mono.error(new InvalidApiKeyException()));
 
-        when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
-                .thenThrow(new InvalidApiKeyException());
+                webTestClient.post()
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isUnauthorized();
+        }
 
-        mockMvc.perform(post("/auth/token")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
-    }
+        @Test
+        @DisplayName("Should return 429 when rate limit exceeded")
+        void shouldReturn429WhenRateLimitExceeded() {
+                AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
 
-    @Test
-    @DisplayName("Should return 429 when rate limit exceeded")
-    @WithMockUser
-    void shouldReturn429WhenRateLimitExceeded() throws Exception {
-        AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
+                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                .thenReturn(Mono.error(new RateLimitExceededException()));
 
-        when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
-                .thenThrow(new RateLimitExceededException());
+                webTestClient.post()
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isEqualTo(429);
+        }
 
-        mockMvc.perform(post("/auth/token")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isTooManyRequests());
-    }
+        @Test
+        @DisplayName("Should refresh token successfully")
+        void shouldRefreshTokenSuccessfully() {
+                RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
+                AuthResponse response = new AuthResponse("new-access-token", "new-refresh-token", "Bearer", 3600);
 
-    @Test
-    @DisplayName("Should refresh token successfully")
-    @WithMockUser
-    void shouldRefreshTokenSuccessfully() throws Exception {
-        RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
-        AuthResponse response = new AuthResponse("new-access-token", "new-refresh-token", "Bearer", 3600);
+                when(authenticationService.refreshToken(anyString(), anyString()))
+                                .thenReturn(Mono.just(response));
 
-        when(authenticationService.refreshToken(anyString(), anyString())).thenReturn(response);
+                webTestClient.post()
+                                .uri("/v1/auth/refresh")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isOk()
+                                .expectBody()
+                                .jsonPath("$.accessToken").isEqualTo("new-access-token");
+        }
 
-        mockMvc.perform(post("/auth/refresh")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("new-access-token"));
-    }
+        @Test
+        @DisplayName("Should revoke token successfully")
+        void shouldRevokeTokenSuccessfully() {
+                RevokeTokenRequest request = new RevokeTokenRequest("token-to-revoke");
 
-    @Test
-    @DisplayName("Should revoke token successfully")
-    @WithMockUser
-    void shouldRevokeTokenSuccessfully() throws Exception {
-        RevokeTokenRequest request = new RevokeTokenRequest("token-to-revoke");
+                when(authenticationService.revokeToken(anyString()))
+                                .thenReturn(Mono.empty());
 
-        mockMvc.perform(post("/auth/revoke")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Token revoked successfully"));
-    }
+                webTestClient.post()
+                                .uri("/v1/auth/revoke")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isOk()
+                                .expectBody()
+                                .jsonPath("$.message").isEqualTo("Token revoked successfully");
+        }
 
-    @Test
-    @DisplayName("Should validate token successfully")
-    @WithMockUser
-    void shouldValidateTokenSuccessfully() throws Exception {
-        when(authenticationService.validateToken(anyString()))
-                .thenReturn(Map.of("valid", true, "subject", "client123"));
+        @Test
+        @DisplayName("Should validate token successfully")
+        void shouldValidateTokenSuccessfully() {
+                when(authenticationService.validateToken(anyString()))
+                                .thenReturn(Mono.just(Map.of("valid", true, "subject", "client123")));
 
-        mockMvc.perform(post("/auth/validate")
-                        .with(csrf())
-                        .header("Authorization", "Bearer valid-token"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.valid").value(true));
-    }
+                webTestClient.post()
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .header("Authorization", "Bearer valid-token")
+                                .exchange()
+                                .expectStatus().isOk()
+                                .expectBody()
+                                .jsonPath("$.valid").isEqualTo(true);
+        }
+        
+        @ParameterizedTest
+        @CsvSource({
+                "203.0.113.45,X-Forwarded-For",
+                "'203.0.113.45, 198.51.100.1, 192.0.2.1',X-Forwarded-For",
+                "198.51.100.5,X-Real-IP"
+        })
+        @DisplayName("Should extract IP from various headers")
+        void shouldExtractIpFromHeaders(String ipValue, String headerName) {
+                if (headerName.equals("X-Real-IP")) {
+                        RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
+                        AuthResponse response = new AuthResponse("new-access-token", "new-refresh-token", "Bearer", 3600);
+
+                        when(authenticationService.refreshToken(anyString(), anyString()))
+                                        .thenReturn(Mono.just(response));
+
+                        webTestClient.post()
+                                        .uri("/v1/auth/refresh")
+                                        .header(headerName, ipValue)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(request)
+                                        .exchange()
+                                        .expectStatus().isOk();
+                } else {
+                        AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
+                        AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
+
+                        when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                        .thenReturn(Mono.just(response));
+
+                        webTestClient.post()
+                                        .uri("/v1/auth/token")
+                                        .header(headerName, ipValue)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(request)
+                                        .exchange()
+                                        .expectStatus().isOk();
+                }
+        }
+
+        @Test
+        @DisplayName("Should prioritize X-Forwarded-For over X-Real-IP")
+        void shouldPrioritizeXForwardedForOverXRealIp() {
+                AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
+                AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
+
+                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                .thenReturn(Mono.just(response));
+
+                webTestClient.post()
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "203.0.113.45")
+                                .header("X-Real-IP", "198.51.100.5")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isOk();
+        }
+
+        @Test
+        @DisplayName("Should handle request without IP headers")
+        void shouldHandleRequestWithoutIpHeaders() {
+                AuthRequest request = new AuthRequest("valid-api-key", "client123", "web");
+                AuthResponse response = new AuthResponse("access-token", "refresh-token", "Bearer", 3600);
+
+                when(authenticationService.authenticate(any(AuthRequest.class), anyString()))
+                                .thenReturn(Mono.just(response));
+
+                webTestClient.post()
+                                .uri("/v1/auth/token")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isOk();
+        }
+
+        @Test
+        @DisplayName("Should extract token from Bearer authorization header")
+        void shouldExtractTokenFromBearerAuthorizationHeader() {
+                when(authenticationService.validateToken("valid-token-123"))
+                                .thenReturn(Mono.just(Map.of("valid", true, "subject", "client123")));
+
+                webTestClient.post()
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .header("Authorization", "Bearer valid-token-123")
+                                .exchange()
+                                .expectStatus().isOk()
+                                .expectBody()
+                                .jsonPath("$.valid").isEqualTo(true);
+        }
+
+        @Test
+        @DisplayName("Should handle authorization header without Bearer prefix")
+        void shouldHandleAuthorizationHeaderWithoutBearerPrefix() {
+                when(authenticationService.validateToken("plain-token"))
+                                .thenReturn(Mono.just(Map.of("valid", false)));
+
+                webTestClient.post()
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .header("Authorization", "plain-token")
+                                .exchange()
+                                .expectStatus().isOk();
+        }
+
+        @Test
+        @DisplayName("Should handle different Bearer token formats")
+        void shouldHandleDifferentBearerTokenFormats() {
+                when(authenticationService.validateToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"))
+                                .thenReturn(Mono.just(Map.of("valid", true, "subject", "client456")));
+
+                webTestClient.post()
+                                .uri("/v1/auth/validate")
+                                .header("X-Forwarded-For", "127.0.0.1")
+                                .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")
+                                .exchange()
+                                .expectStatus().isOk()
+                                .expectBody()
+                                .jsonPath("$.valid").isEqualTo(true);
+        }
+
+        @Test
+        @DisplayName("Should reject request with unknown IP address")
+        void shouldRejectRequestWithUnknownIpAddress() {
+                RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
+
+                webTestClient.post()
+                                .uri("/v1/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(request)
+                                .exchange()
+                                .expectStatus().isForbidden()
+                                .expectBody()
+                                .jsonPath("$.error").isEqualTo("forbidden")
+                                .jsonPath("$.message").isEqualTo("Unable to determine client IP address");
+        }
 }

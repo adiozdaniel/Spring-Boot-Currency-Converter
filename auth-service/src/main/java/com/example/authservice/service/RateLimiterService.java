@@ -1,57 +1,47 @@
 package com.example.authservice.service;
 
-import com.example.authservice.config.RateLimitConfig;
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+/**
+ * Service interface for managing rate limiting operations.
+ * <p>
+ * This interface provides methods to control access to resources based on predefined
+ * rate limits, preventing abuse and ensuring fair usage.
+ * </p>
+ */
+public interface RateLimiterService {
 
-@Service
-public class RateLimiterService {
+    /**
+     * Attempts to acquire permission for a rate-limited operation.
+     *
+     * @param key a unique identifier for the resource or client to be rate-limited.
+     * @return a {@link Mono} emitting {@code true} if permission is granted (rate limit not exceeded),
+     *         {@code false} if the rate limit is exceeded.
+     */
+    Mono<Boolean> tryAcquire(String key);
 
-    private static final Logger logger = LoggerFactory.getLogger(RateLimiterService.class);
+    /**
+     * Wraps a reactive operation with rate limiting logic.
+     * <p>
+     * If the rate limit for the given key is exceeded, a {@link RateLimitExceededException}
+     * will be thrown. Otherwise, the provided operation will be executed.
+     * </p>
+     * @param <T> the type of the result from the operation.
+     * @param key a unique identifier for the resource or client to be rate-limited.
+     * @param operation the {@link Mono} representing the operation to be rate-limited.
+     * @return a {@link Mono} emitting the result of the operation if the rate limit is not exceeded.
+     * @throws com.example.authservice.exception.RateLimitExceededException if the rate limit is exceeded.
+     */
+    <T> Mono<T> executeWithRateLimit(String key, Mono<T> operation);
 
-    private final RateLimitConfig rateLimitConfig;
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
-
-    public RateLimiterService(RateLimitConfig rateLimitConfig) {
-        this.rateLimitConfig = rateLimitConfig;
-    }
-
-    public boolean tryConsume(String key) {
-        Bucket bucket = buckets.computeIfAbsent(key, this::createBucket);
-        boolean consumed = bucket.tryConsume(1);
-
-        if (!consumed) {
-            logger.warn("Rate limit exceeded for key: {}", key);
-        }
-
-        return consumed;
-    }
-
-    public long getAvailableTokens(String key) {
-        Bucket bucket = buckets.get(key);
-        return bucket != null ? bucket.getAvailableTokens() : rateLimitConfig.getCapacity();
-    }
-
-    private Bucket createBucket(String key) {
-        Bandwidth limit = Bandwidth.builder()
-                .capacity(rateLimitConfig.getCapacity())
-                .refillGreedy(rateLimitConfig.getRefillTokens(),
-                        Duration.ofSeconds(rateLimitConfig.getRefillDurationSeconds()))
-                .build();
-
-        return Bucket.builder()
-                .addLimit(limit)
-                .build();
-    }
-
-    public void clearBucket(String key) {
-        buckets.remove(key);
-    }
+    /**
+     * Clears or removes the rate limiter for a specific key.
+     * <p>
+     * This can be used to reset the rate limit for a client or resource,
+     * e.g., after a period of inactivity or successful payment.
+     * </p>
+     * @param key the unique identifier of the rate limiter to clear.
+     * @return a {@link Mono<Void>} that completes when the rate limiter has been cleared.
+     */
+    Mono<Void> clearRateLimiter(String key);
 }

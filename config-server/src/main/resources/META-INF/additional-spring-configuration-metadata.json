@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "config.server.username",
+    "type": "java.lang.String",
+    "description": "A description for 'config.server.username'"
+  },
+  {
+    "name": "config.server.password",
+    "type": "java.lang.String",
+    "description": "A description for 'config.server.password'"
+  },
+  {
+    "name": "encrypt.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'encrypt.enabled'"
+  }
+]}
