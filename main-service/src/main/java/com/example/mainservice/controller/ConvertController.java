@@ -5,10 +5,13 @@ import com.example.mainservice.dto.ConvertRequest;
 import com.example.mainservice.dto.ConvertResponse;
 import com.example.mainservice.exception.ServiceException;
 import com.example.mainservice.service.ConversionService;
-
-import org.springframework.http.*;
+import jakarta.validation.Valid;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -17,47 +20,43 @@ import java.util.Map;
 @RequestMapping("/convert")
 public class ConvertController {
 
-  private final RestTemplate restTemplate;
+  private final WebClient webClient;
   private final RateServiceConfig config;
   private final ConversionService conversionService;
 
-  public ConvertController(RestTemplate restTemplate, RateServiceConfig config, ConversionService conversionService) {
-    this.restTemplate = restTemplate;
+  public ConvertController(WebClient webClient, RateServiceConfig config, ConversionService conversionService) {
+    this.webClient = webClient;
     this.config = config;
     this.conversionService = conversionService;
   }
 
   @PostMapping
-  public ResponseEntity<?> convert(@RequestBody ConvertRequest request) {
-    String from = request.getFrom();
-    String to = request.getTo();
+  public Mono<ResponseEntity<ConvertResponse>> convert(@Valid @RequestBody ConvertRequest request) {
+    String from = request.getFrom().toUpperCase();
+    String to = request.getTo().toUpperCase();
     double amount = request.getAmount();
 
-    if (from == null || to == null || amount <= 0) {
-      return ResponseEntity.badRequest().body(Map.of(
-          "error", "Invalid input: `from`, `to`, and positive `amount` are required."));
-    }
-
     String url = String.format("%s?from=%s&to=%s", config.getUrl(), from, to);
-    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-        url,
-        HttpMethod.GET,
-        null,
-        new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+
+    return webClient.get()
+        .uri(url)
+        .retrieve()
+        .onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
+            .flatMap(body -> Mono.error(new ServiceException("Rate service returned error: " + body))))
+        .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
+        })
+        .flatMap(body -> {
+          if (body == null || !body.containsKey("rate")) {
+            return Mono.error(new ServiceException("Rate service returned invalid response"));
+          }
+
+          BigDecimal rate = new BigDecimal(body.get("rate").toString());
+          BigDecimal amountDecimal = BigDecimal.valueOf(amount);
+          BigDecimal converted = rate.multiply(amountDecimal);
+
+          return conversionService.saveConversion(from, to, amountDecimal, rate, converted)
+              .map(saved -> ResponseEntity.ok(new ConvertResponse(
+                  from, to, rate.doubleValue(), amount, converted.doubleValue())));
         });
-
-    if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-      throw new ServiceException("Rate service returned invalid response");
-    }
-
-    Map<String, Object> body = response.getBody();
-    BigDecimal rate = new BigDecimal(((Number) body.get("rate")).toString());
-    BigDecimal amountDecimal = BigDecimal.valueOf(amount);
-    BigDecimal converted = rate.multiply(amountDecimal);
-
-    conversionService.saveConversion(from.toUpperCase(), to.toUpperCase(), amountDecimal, rate, converted);
-
-    return ResponseEntity.ok(new ConvertResponse(
-        from.toUpperCase(), to.toUpperCase(), rate.doubleValue(), amount, converted.doubleValue()));
   }
 }
