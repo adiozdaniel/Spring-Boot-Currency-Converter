@@ -74,7 +74,7 @@ class AuthControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(request)
                                 .exchange()
-                                .expectStatus().is5xxServerError(); // Validation error in test context
+                                .expectStatus().isBadRequest();
         }
 
         @Test
