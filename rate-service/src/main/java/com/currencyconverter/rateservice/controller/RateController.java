@@ -1,9 +1,11 @@
-package com.example.rateservice.controller;
+package com.currencyconverter.rateservice.controller;
 
-import com.example.rateservice.service.RateService;
+import com.currencyconverter.rateservice.service.RateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
 import java.util.Map;
 
 @RestController
@@ -18,7 +20,7 @@ public class RateController {
   }
 
   @GetMapping
-  public Map<String, Object> getExchangeRate(@RequestParam String from, @RequestParam String to) {
+  public Mono<Map<String, Object>> getExchangeRate(@RequestParam String from, @RequestParam String to) {
     logger.info("Request received for exchange rate from {} to {}", from, to);
     return rateService.fetchRate(from.toUpperCase(), to.toUpperCase());
   }

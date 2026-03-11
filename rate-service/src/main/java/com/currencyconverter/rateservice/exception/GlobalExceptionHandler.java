@@ -1,4 +1,4 @@
-package com.example.rateservice.exception;
+package com.currencyconverter.rateservice.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

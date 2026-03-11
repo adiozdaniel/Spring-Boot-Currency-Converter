@@ -1,4 +1,4 @@
-package com.example.rateservice.config;
+package com.currencyconverter.rateservice.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

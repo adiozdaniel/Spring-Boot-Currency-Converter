@@ -1,4 +1,4 @@
-package com.example.rateservice;
+package com.currencyconverter.rateservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
