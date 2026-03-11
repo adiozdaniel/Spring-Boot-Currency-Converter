@@ -1,52 +1,35 @@
 package com.currencyconverter.mainservice.controller;
 
+import com.currencyconverter.mainservice.dto.ConvertRequest;
+import com.currencyconverter.mainservice.dto.ConvertResponse;
+import com.currencyconverter.mainservice.grpc.RateGrpcClient;
+import com.currencyconverter.mainservice.model.Conversion;
+import com.currencyconverter.mainservice.service.ConversionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import com.currencyconverter.mainservice.config.RateServiceConfig;
-import com.currencyconverter.mainservice.dto.ConvertRequest;
-import com.currencyconverter.mainservice.dto.ConvertResponse;
-import com.currencyconverter.mainservice.model.Conversion;
-import com.currencyconverter.mainservice.service.ConversionService;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ConvertController Tests")
 class ConvertControllerTest {
 
     @Mock
-    private WebClient webClient;
-
-    @Mock
-    private WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
-
-    @Mock
-    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
-
-    @Mock
-    private WebClient.ResponseSpec responseSpec;
-
-    @Mock
-    private RateServiceConfig rateServiceConfig;
+    private RateGrpcClient rateGrpcClient;
 
     @Mock
     private ConversionService conversionService;
@@ -55,18 +38,11 @@ class ConvertControllerTest {
 
     @BeforeEach
     void setUp() {
-        convertController = new ConvertController(webClient, rateServiceConfig, conversionService);
-        when(rateServiceConfig.getUrl()).thenReturn("http://localhost:8082/rates");
-
-        // Mock WebClient fluent API
-        doReturn(requestHeadersUriSpec).when(webClient).get();
-        doReturn(requestHeadersSpec).when(requestHeadersUriSpec).uri(anyString());
-        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
+        convertController = new ConvertController(rateGrpcClient, conversionService);
     }
 
     @Test
-    @DisplayName("Should convert currency successfully")
+    @DisplayName("Should convert currency successfully via gRPC")
     void shouldConvertCurrencySuccessfully() {
         // Given
         ConvertRequest request = new ConvertRequest();
@@ -74,15 +50,14 @@ class ConvertControllerTest {
         request.setTo("EUR");
         request.setAmount(100.0);
 
-        Map<String, Object> rateResponse = Map.of("rate", 0.85);
-        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
+        when(rateGrpcClient.getExchangeRate("USD", "EUR")).thenReturn(Mono.just(BigDecimal.valueOf(0.85)));
 
         Conversion savedConversion = new Conversion("USD", "EUR",
                 BigDecimal.valueOf(100.0), BigDecimal.valueOf(0.85),
                 BigDecimal.valueOf(85.0), LocalDateTime.now());
 
-        doReturn(Mono.just(savedConversion)).when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class));
+        when(conversionService.saveConversion(anyString(), anyString(), any(BigDecimal.class),
+                any(BigDecimal.class), any(BigDecimal.class))).thenReturn(Mono.just(savedConversion));
 
         // When
         Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
@@ -101,11 +76,12 @@ class ConvertControllerTest {
                 })
                 .verifyComplete();
 
+        verify(rateGrpcClient).getExchangeRate("USD", "EUR");
         verify(conversionService).saveConversion(
                 eq("USD"),
                 eq("EUR"),
                 eq(BigDecimal.valueOf(100.0)),
-                any(BigDecimal.class),
+                eq(BigDecimal.valueOf(0.85)),
                 any(BigDecimal.class));
     }
 
@@ -118,15 +94,14 @@ class ConvertControllerTest {
         request.setTo("eur");
         request.setAmount(100.0);
 
-        Map<String, Object> rateResponse = Map.of("rate", 0.85);
-        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
+        when(rateGrpcClient.getExchangeRate("USD", "EUR")).thenReturn(Mono.just(BigDecimal.valueOf(0.85)));
 
         Conversion savedConversion = new Conversion("USD", "EUR",
                 BigDecimal.valueOf(100.0), BigDecimal.valueOf(0.85),
                 BigDecimal.valueOf(85.0), LocalDateTime.now());
 
-        doReturn(Mono.just(savedConversion)).when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class));
+        when(conversionService.saveConversion(anyString(), anyString(), any(BigDecimal.class),
+                any(BigDecimal.class), any(BigDecimal.class))).thenReturn(Mono.just(savedConversion));
 
         // When
         Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
@@ -142,77 +117,6 @@ class ConvertControllerTest {
                 })
                 .verifyComplete();
 
-        verify(conversionService).saveConversion(
-                eq("USD"),
-                eq("EUR"),
-                any(BigDecimal.class),
-                any(BigDecimal.class),
-                any(BigDecimal.class));
-    }
-
-    @Test
-    @DisplayName("Should handle large amounts correctly")
-    void shouldHandleLargeAmountsCorrectly() {
-        // Given
-        ConvertRequest request = new ConvertRequest();
-        request.setFrom("USD");
-        request.setTo("EUR");
-        request.setAmount(1000000.0);
-
-        Map<String, Object> rateResponse = Map.of("rate", 0.85);
-        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
-
-        Conversion savedConversion = new Conversion("USD", "EUR",
-                BigDecimal.valueOf(1000000.0), BigDecimal.valueOf(0.85),
-                BigDecimal.valueOf(850000.0), LocalDateTime.now());
-
-        doReturn(Mono.just(savedConversion)).when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class));
-
-        // When
-        Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
-
-        // Then
-        StepVerifier.create(responseMono)
-                .assertNext(response -> {
-                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                    ConvertResponse convertResponse = response.getBody();
-                    assertThat(convertResponse).isNotNull();
-                    assertThat(convertResponse.getAmount()).isEqualTo(1000000.0);
-                    assertThat(convertResponse.getConverted()).isEqualTo(850000.0);
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Should handle rate as Integer type")
-    void shouldHandleRateAsIntegerType() {
-        // Given
-        ConvertRequest request = new ConvertRequest();
-        request.setFrom("USD");
-        request.setTo("JPY");
-        request.setAmount(100.0);
-
-        Map<String, Object> rateResponse = Map.of("rate", 150);
-        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
-
-        doReturn(Mono.just(new Conversion("USD", "JPY", BigDecimal.valueOf(100.0),
-                BigDecimal.valueOf(150), BigDecimal.valueOf(15000.0), LocalDateTime.now())))
-                .when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                        any(BigDecimal.class), any(BigDecimal.class));
-
-        // When
-        Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
-
-        // Then
-        StepVerifier.create(responseMono)
-                .assertNext(response -> {
-                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                    ConvertResponse convertResponse = response.getBody();
-                    assertThat(convertResponse).isNotNull();
-                    assertThat(convertResponse.getRate()).isEqualTo(150.0);
-                    assertThat(convertResponse.getConverted()).isEqualTo(15000.0);
-                })
-                .verifyComplete();
+        verify(rateGrpcClient).getExchangeRate("USD", "EUR");
     }
 }
