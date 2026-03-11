@@ -37,7 +37,7 @@ jobs:
       - name: Build with Maven
         run: |
           ./mvnw install -N -f ../pom.xml -DskipTests
-          ./mvnw install -pl ../common-config -f ../pom.xml -DskipTests
+          ./mvnw install -pl common-config -f ../pom.xml -DskipTests
           ./mvnw clean package -DskipTests
 
       - name: Upload JAR artifact
@@ -67,7 +67,7 @@ jobs:
       - name: Run tests
         run: |
           ./mvnw install -N -f ../pom.xml -DskipTests
-          ./mvnw install -pl ../common-config -f ../pom.xml -DskipTests
+          ./mvnw install -pl common-config -f ../pom.xml -DskipTests
           ./mvnw test
 
       - name: Generate test coverage
@@ -152,7 +152,7 @@ jobs:
           SONAR_HOST_URL: ${{ fromJSON(toJSON(secrets)).SONAR_HOST_URL }}
         run: |
           ./mvnw install -N -f ../pom.xml -DskipTests
-          ./mvnw install -pl ../common-config -f ../pom.xml -DskipTests
+          ./mvnw install -pl common-config -f ../pom.xml -DskipTests
           ./mvnw verify sonar:sonar \
             -Dsonar.projectKey=currency-converter-rate-service \
             -Dsonar.host.url=$SONAR_HOST_URL \
