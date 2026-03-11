@@ -1,15 +1,18 @@
 package com.currencyconverter.rateservice.service;
 
 import com.currencyconverter.rateservice.config.ExchangeRateApiConfig;
+import com.currencyconverter.rateservice.exception.CurrencyNotSupportedException;
 import com.currencyconverter.rateservice.exception.ExchangeRateFetchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -175,5 +178,78 @@ class RateServiceTest {
                 .expectErrorMatches(throwable -> throwable instanceof ExchangeRateFetchException && 
                         throwable.getMessage().contains("conversion_rate"))
                 .verify();
+    }
+
+    @Test
+    @DisplayName("Should throw ExchangeRateFetchException when response map is null or success is missing")
+    void shouldThrowExceptionWhenResponseIsNull() {
+        // Given
+        String from = "USD";
+        String to = "EUR";
+
+        doReturn(Mono.just(new HashMap<>())).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
+
+        // When
+        Mono<Map<String, Object>> resultMono = rateService.fetchRate(from, to);
+
+        // Then
+        StepVerifier.create(resultMono)
+                .expectError(ExchangeRateFetchException.class)
+                .verify();
+    }
+
+    @Test
+    @DisplayName("Should throw ExchangeRateFetchException when success is false without error info")
+    void shouldThrowExceptionWhenSuccessIsFalseWithoutErrorInfo() {
+        // Given
+        String from = "USD";
+        String to = "EUR";
+
+        Map<String, Object> apiResponse = new HashMap<>();
+        apiResponse.put("success", false);
+
+        doReturn(Mono.just(apiResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
+
+        // When
+        Mono<Map<String, Object>> resultMono = rateService.fetchRate(from, to);
+
+        // Then
+        StepVerifier.create(resultMono)
+                .expectErrorMatches(throwable -> throwable instanceof ExchangeRateFetchException && 
+                        throwable.getMessage().contains("No error information provided"))
+                .verify();
+    }
+
+    @Test
+    @DisplayName("Should cover 4xx status mapping")
+    void shouldCover4xxStatusMapping() {
+        // This is a bit of a hack to cover the lambda in onStatus
+        // We capture the functions and call them manually
+        
+        // Arrange
+        String from = "USD";
+        String to = "EUR";
+        
+        // Ensure the fluent chain continues
+        doReturn(Mono.empty()).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
+        
+        // Act
+        rateService.fetchRate(from, to).subscribe();
+        
+        // Assert
+        ArgumentCaptor<Function> statusHandlerCaptor = ArgumentCaptor.forClass(Function.class);
+        verify(responseSpec, atLeastOnce()).onStatus(any(), statusHandlerCaptor.capture());
+        
+        // Trigger the 4xx handler (the first one)
+        Function handler4xx = statusHandlerCaptor.getAllValues().get(0);
+        Mono result4xx = (Mono) handler4xx.apply(mock(org.springframework.web.reactive.function.client.ClientResponse.class));
+        StepVerifier.create(result4xx).expectError(CurrencyNotSupportedException.class).verify();
+
+        // Trigger the general error handler (the second one)
+        Function handlerError = statusHandlerCaptor.getAllValues().get(1);
+        org.springframework.web.reactive.function.client.ClientResponse mockResponse = mock(org.springframework.web.reactive.function.client.ClientResponse.class);
+        when(mockResponse.bodyToMono(String.class)).thenReturn(Mono.just("API Error"));
+        Mono resultError = (Mono) handlerError.apply(mockResponse);
+        StepVerifier.create(resultError).expectError(ExchangeRateFetchException.class).verify();
     }
 }
