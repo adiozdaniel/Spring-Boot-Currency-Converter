@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package auth;
+
+option java_multiple_files = true;
+option java_package = "com.currencyconverter.common.grpc.auth";
+option java_outer_classname = "AuthProto";
+
+service AuthService {
+  rpc Authenticate(AuthGrpcRequest) returns (AuthGrpcResponse);
+  rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
+}
+
+message AuthGrpcRequest {
+  string api_key = 1;
+  string client_id = 2;
+  string client_type = 3;
+}
+
+message AuthGrpcResponse {
+  string token = 1;
+  string refresh_token = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+message ValidateRequest {
+  string token = 1;
+}
+
+message ValidateResponse {
+  bool valid = 1;
+  string user_id = 2;
+  repeated string roles = 3;
+}

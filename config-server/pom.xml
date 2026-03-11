@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.5</version>
+		<version>3.4.7</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.example</groupId>
@@ -15,7 +15,7 @@
 	<description>Configuration Server for Currency Converter Microservices</description>
 
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
 		<sonar.organization>currency-converter</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>

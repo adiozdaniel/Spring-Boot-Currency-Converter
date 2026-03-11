@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package main_service;
+
+option java_multiple_files = true;
+option java_package = "com.currencyconverter.common.grpc.main";
+option java_outer_classname = "MainProto";
+
+service ConversionService {
+  rpc Convert(ConversionRequest) returns (ConversionResponse);
+  rpc GetHistory(HistoryRequest) returns (HistoryResponse);
+}
+
+message ConversionRequest {
+  string from_currency = 1;
+  string to_currency = 2;
+  double amount = 3;
+}
+
+message ConversionResponse {
+  string from_currency = 1;
+  string to_currency = 2;
+  double amount = 3;
+  double converted_amount = 4;
+  double rate = 5;
+  string timestamp = 6;
+}
+
+message HistoryRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+message HistoryResponse {
+  repeated ConversionResponse entries = 1;
+}

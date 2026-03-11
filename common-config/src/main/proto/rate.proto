@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package rate_service;
+
+option java_multiple_files = true;
+option java_package = "com.currencyconverter.common.grpc.rate";
+option java_outer_classname = "RateProto";
+
+service RateService {
+  rpc GetRate(RateRequest) returns (RateResponse);
+}
+
+message RateRequest {
+  string from = 1;
+  string to = 2;
+}
+
+message RateResponse {
+  double rate = 1;
+  string from = 2;
+  string to = 3;
+}
