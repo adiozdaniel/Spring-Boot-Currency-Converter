@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
@@ -34,11 +35,10 @@ class ConvertControllerTest {
     private WebClient webClient;
 
     @Mock
-    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+    private WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
 
     @Mock
-    @SuppressWarnings("rawtypes")
-    private WebClient.RequestHeadersSpec requestHeadersSpec;
+    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
 
     @Mock
     private WebClient.ResponseSpec responseSpec;
@@ -52,14 +52,13 @@ class ConvertControllerTest {
     private ConvertController convertController;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void setUp() {
         convertController = new ConvertController(webClient, rateServiceConfig, conversionService);
         when(rateServiceConfig.getUrl()).thenReturn("http://localhost:8082/rates");
 
         // Mock WebClient fluent API
-        when(webClient.get()).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        doReturn(requestHeadersUriSpec).when(webClient).get();
+        doReturn(requestHeadersSpec).when(requestHeadersUriSpec).uri(anyString());
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
     }
@@ -74,15 +73,14 @@ class ConvertControllerTest {
         request.setAmount(100.0);
 
         Map<String, Object> rateResponse = Map.of("rate", 0.85);
-        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rateResponse));
+        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
 
         Conversion savedConversion = new Conversion("USD", "EUR",
                 BigDecimal.valueOf(100.0), BigDecimal.valueOf(0.85),
                 BigDecimal.valueOf(85.0), LocalDateTime.now());
 
-        when(conversionService.saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class)))
-                .thenReturn(Mono.just(savedConversion));
+        doReturn(Mono.just(savedConversion)).when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
+                any(BigDecimal.class), any(BigDecimal.class));
 
         // When
         Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
@@ -119,15 +117,14 @@ class ConvertControllerTest {
         request.setAmount(100.0);
 
         Map<String, Object> rateResponse = Map.of("rate", 0.85);
-        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rateResponse));
+        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
 
         Conversion savedConversion = new Conversion("USD", "EUR",
                 BigDecimal.valueOf(100.0), BigDecimal.valueOf(0.85),
                 BigDecimal.valueOf(85.0), LocalDateTime.now());
 
-        when(conversionService.saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class)))
-                .thenReturn(Mono.just(savedConversion));
+        doReturn(Mono.just(savedConversion)).when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
+                any(BigDecimal.class), any(BigDecimal.class));
 
         // When
         Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
@@ -161,15 +158,14 @@ class ConvertControllerTest {
         request.setAmount(1000000.0);
 
         Map<String, Object> rateResponse = Map.of("rate", 0.85);
-        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rateResponse));
+        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
 
         Conversion savedConversion = new Conversion("USD", "EUR",
                 BigDecimal.valueOf(1000000.0), BigDecimal.valueOf(0.85),
                 BigDecimal.valueOf(850000.0), LocalDateTime.now());
 
-        when(conversionService.saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class)))
-                .thenReturn(Mono.just(savedConversion));
+        doReturn(Mono.just(savedConversion)).when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
+                any(BigDecimal.class), any(BigDecimal.class));
 
         // When
         Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
@@ -196,12 +192,12 @@ class ConvertControllerTest {
         request.setAmount(100.0);
 
         Map<String, Object> rateResponse = Map.of("rate", 150);
-        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rateResponse));
+        doReturn(Mono.just(rateResponse)).when(responseSpec).bodyToMono(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
 
-        when(conversionService.saveConversion(anyString(), anyString(), any(BigDecimal.class),
-                any(BigDecimal.class), any(BigDecimal.class)))
-                .thenReturn(Mono.just(new Conversion("USD", "JPY", BigDecimal.valueOf(100.0),
-                        BigDecimal.valueOf(150), BigDecimal.valueOf(15000.0), LocalDateTime.now())));
+        doReturn(Mono.just(new Conversion("USD", "JPY", BigDecimal.valueOf(100.0),
+                BigDecimal.valueOf(150), BigDecimal.valueOf(15000.0), LocalDateTime.now())))
+                .when(conversionService).saveConversion(anyString(), anyString(), any(BigDecimal.class),
+                        any(BigDecimal.class), any(BigDecimal.class));
 
         // When
         Mono<ResponseEntity<ConvertResponse>> responseMono = convertController.convert(request);
