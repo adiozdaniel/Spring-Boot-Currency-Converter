@@ -17,10 +17,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.cloud.config.server.git.uri=https://github.com/spring-cloud-samples/config-repo",
         "spring.cloud.config.server.git.clone-on-start=false",
         "spring.cloud.config.server.encrypt.enabled=false",
-        "encrypt.key-store.location=classpath:/test.jks",
-        "encrypt.key-store.password=testpassword",
-        "encrypt.key-store.alias=testalias",
-        "encrypt.key-store.secret=testsecret",
         "config.server.username=config-user",
         "config.server.password=changeme",
         "management.endpoints.web.exposure.include=health,info,env"

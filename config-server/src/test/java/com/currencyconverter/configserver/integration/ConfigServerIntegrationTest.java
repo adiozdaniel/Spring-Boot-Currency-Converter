@@ -24,11 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "management.endpoints.web.exposure.include=health,info",
         "config.server.username=test-user",
         "config.server.password=test-password",
-        "spring.cloud.config.server.encrypt.enabled=false",
-        "encrypt.key-store.location=classpath:/test.jks",
-        "encrypt.key-store.password=testpassword",
-        "encrypt.key-store.alias=testalias",
-        "encrypt.key-store.secret=testsecret"
+        "spring.cloud.config.server.encrypt.enabled=false"
 })
 @DisplayName("Config Server Integration Tests")
 class ConfigServerIntegrationTest {
