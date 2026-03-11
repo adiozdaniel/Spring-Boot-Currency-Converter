@@ -1,4 +1,4 @@
-package com.example.configserver.integration;
+package com.currencyconverter.configserver.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,4 +1,4 @@
-package com.example.configserver.config;
+package com.currencyconverter.configserver.config;
 
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;

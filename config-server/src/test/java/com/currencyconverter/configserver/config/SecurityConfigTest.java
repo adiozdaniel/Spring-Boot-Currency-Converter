@@ -1,4 +1,4 @@
-package com.example.configserver.config;
+package com.currencyconverter.configserver.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;

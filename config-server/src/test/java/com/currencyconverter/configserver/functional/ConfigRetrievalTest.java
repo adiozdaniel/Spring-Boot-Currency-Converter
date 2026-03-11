@@ -1,4 +1,4 @@
-package com.example.configserver.functional;
+package com.currencyconverter.configserver.functional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

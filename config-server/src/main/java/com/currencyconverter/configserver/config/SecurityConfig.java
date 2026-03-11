@@ -1,4 +1,4 @@
-package com.example.configserver.config;
+package com.currencyconverter.configserver.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
