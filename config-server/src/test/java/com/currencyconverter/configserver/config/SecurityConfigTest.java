@@ -71,11 +71,11 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("SecurityConfig should have exactly one public method")
-    void shouldHaveExactlyOnePublicMethod() {
+    @DisplayName("SecurityConfig should have exactly three public methods")
+    void shouldHaveExactlyThreePublicMethods() {
         long publicMethodCount = java.util.Arrays.stream(SecurityConfig.class.getDeclaredMethods())
                 .filter(m -> java.lang.reflect.Modifier.isPublic(m.getModifiers()))
                 .count();
-        assertEquals(1, publicMethodCount);
+        assertEquals(3, publicMethodCount);
     }
 }
