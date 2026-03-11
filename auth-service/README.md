@@ -11,25 +11,36 @@ optimal throughput.
 ### Key Features
 
 - 🔄 **Fully Reactive** - Spring WebFlux with Project Reactor (Mono/Flux)
+- 📡 **gRPC Server** - High-performance server for inter-service authentication (Port 9091)
 - 🔒 **JWT Token Management** - Access & refresh tokens with configurable expiration
 - 🛡️ **API Key Validation** - Client authentication via API keys
 - ⚡ **Rate Limiting** - Bucket4j + Resilience4j for request throttling
 - 📊 **Kafka Event Streaming** - Reactive auth event publishing (reactor-kafka)
 - 🗄️ **Redis Integration** - Token revocation with reactive Redis
-- 📈 **Observability** - Prometheus metrics, distributed tracing, request ID propagation
+- 📈 **Observability** - Prometheus metrics, distributed tracing, gRPC interceptors
 - 🔐 **Spring Security WebFlux** - Reactive security filter chains
-- 🧪 **Comprehensive Tests** - WebFluxTest, StepVerifier, 80%+ coverage
+- 🧪 **Comprehensive Tests** - WebFluxTest, gRPC Unit Tests, 85%+ coverage
 
 ## 🏗️ Architecture
 
-┌─────────────┐ ┌──────────────┐ ┌─────────────┐
-│ Client │────▶│ Auth Service │────▶ │ Redis │
-│ (API Key) │ │ (WebFlux) │ │ (Revoked) │
-└─────────────┘ └──────────────┘ └─────────────┘
-│
-├──────▶ Config Server (JWT Secret)
-│
-└──────▶ Kafka (Auth Events)
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Client    │────▶│ Auth Service │────▶│    Redis    │
+│  (API Key)  │     │ (REST/gRPC)  │     │  (Revoked)  │
+└─────────────┘     └──────────────┘     └─────────────┘
+                           │
+           ┌───────────────┴───────────────┐
+           ▼                               │
+    Config Server                  Kafka (Auth Events)
+    (JWT Secret)
+
+### gRPC Interface
+
+The service exposes a gRPC interface for low-latency token validation used by other microservices.
+
+| Method          | Request           | Response           | Description                      |
+|-----------------|-------------------|--------------------|----------------------------------|
+| `Authenticate`  | `AuthGrpcRequest` | `AuthGrpcResponse` | Internal service authentication  |
+| `ValidateToken` | `ValidateRequest` | `ValidateResponse` | Real-time JWT claims validation  |
 
 ### Tech Stack
 
