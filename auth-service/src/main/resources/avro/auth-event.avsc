@@ -1,7 +1,7 @@
 {
   "type": "record",
   "name": "AuthEvent",
-  "namespace": "com.example.authservice.avro",
+  "namespace": "com.currencyconverter.authservice.avro",
   "fields": [
     {
       "name": "eventId",
