@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import com.example.authservice.constant.ExceptionConstants;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
@@ -101,8 +100,8 @@ public class GlobalExceptionHandler {
      * @return a {@link ResponseEntity} containing validation error details and HTTP
      *         status 400.
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    @ExceptionHandler(org.springframework.web.bind.support.WebExchangeBindException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(org.springframework.web.bind.support.WebExchangeBindException ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
         Map<String, Object> response = new HashMap<>();
         Map<String, String> errors = new HashMap<>();
