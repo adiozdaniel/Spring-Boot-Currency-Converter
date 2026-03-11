@@ -34,7 +34,7 @@
     </root>
 
     <!-- Your application logger -->
-    <logger name="com.example.authservice" level="DEBUG" additivity="false">
+    <logger name="com.currencyconverter.authservice" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
