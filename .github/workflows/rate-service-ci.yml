@@ -35,7 +35,10 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: ./mvnw clean package -DskipTests
+        run: |
+          ./mvnw install -N -f ../pom.xml -DskipTests
+          ./mvnw install -pl ../common-config -f ../pom.xml -DskipTests
+          ./mvnw clean package -DskipTests
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
@@ -62,7 +65,10 @@ jobs:
           cache: 'maven'
 
       - name: Run tests
-        run: ./mvnw test
+        run: |
+          ./mvnw install -N -f ../pom.xml -DskipTests
+          ./mvnw install -pl ../common-config -f ../pom.xml -DskipTests
+          ./mvnw test
 
       - name: Generate test coverage
         run: ./mvnw jacoco:report
@@ -145,6 +151,8 @@ jobs:
           SONAR_TOKEN: ${{ fromJSON(toJSON(secrets)).SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ fromJSON(toJSON(secrets)).SONAR_HOST_URL }}
         run: |
+          ./mvnw install -N -f ../pom.xml -DskipTests
+          ./mvnw install -pl ../common-config -f ../pom.xml -DskipTests
           ./mvnw verify sonar:sonar \
             -Dsonar.projectKey=currency-converter-rate-service \
             -Dsonar.host.url=$SONAR_HOST_URL \
