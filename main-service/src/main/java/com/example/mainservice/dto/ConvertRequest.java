@@ -1,8 +1,16 @@
 package com.example.mainservice.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+
 public class ConvertRequest {
+  @NotBlank(message = "`from` currency is required")
   private String from;
+
+  @NotBlank(message = "`to` currency is required")
   private String to;
+
+  @Positive(message = "`amount` must be greater than zero")
   private double amount;
 
   public String getFrom() {
