@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/rate")
+@RequestMapping("/api/v1/rate")
 public class RateController {
 
   private static final Logger logger = LoggerFactory.getLogger(RateController.class);
