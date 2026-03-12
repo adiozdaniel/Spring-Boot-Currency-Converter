@@ -14,7 +14,7 @@ WORKDIR /app
 ARG SPRING_PROFILES_ACTIVE=development
 ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
 
-COPY target/auth-service-0.0.1-SNAPSHOT.jar app.jar
+COPY target/*.jar app.jar
 
 ENV TZ=UTC
 

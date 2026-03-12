@@ -20,7 +20,7 @@ ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
 
 # Copy the built JAR from target directory
 # NOTE: JAR must be built before running docker build
-COPY target/rate-service-0.0.1-SNAPSHOT.jar app.jar
+COPY target/*.jar app.jar
 
 # Set timezone to UTC
 ENV TZ=UTC

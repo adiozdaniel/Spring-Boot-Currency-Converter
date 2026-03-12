@@ -131,11 +131,27 @@
 			<artifactId>spring-cloud-starter-config</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-bootstrap</artifactId>
+		        <groupId>org.springframework.cloud</groupId>
+		        <artifactId>spring-cloud-starter-bootstrap</artifactId>
+		</dependency>
+
+		<!-- gRPC & Protobuf -->
+		<dependency>
+		        <groupId>com.currency-converter</groupId>
+		        <artifactId>common-config</artifactId>
+		</dependency>
+		<dependency>
+		        <groupId>net.devh</groupId>
+		        <artifactId>grpc-server-spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
+		        <groupId>io.grpc</groupId>
+		        <artifactId>grpc-services</artifactId>
+		        <version>${grpc.version}</version>
 		</dependency>
 
 		<!-- Testing -->
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

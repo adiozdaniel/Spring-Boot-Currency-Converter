@@ -9,7 +9,7 @@
     <parent>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-parent</artifactId>
-      <version>3.5.9</version>
+      <version>3.5.11</version>
       <relativePath/>
     </parent>
 
@@ -23,6 +23,9 @@
 
     <modules>
       <module>auth-service</module>
+      <module>main-service</module>
+      <module>common-config</module>
+      <module>rate-service</module>
     </modules>
 
     <properties>
@@ -52,11 +55,22 @@
       <flyway.version>10.21.0</flyway.version>
       <r2dbc-postgresql.version>1.0.8.RELEASE</r2dbc-postgresql.version>
 
+      <!-- Code Generation -->
+      <lombok.version>1.18.36</lombok.version>
+
       <!-- Documentation -->
       <springdoc.version>2.8.15</springdoc.version>
 
       <!-- Testing & Quality -->
       <jacoco.version>0.8.11</jacoco.version>
+
+      <!-- gRPC & Protobuf -->
+      <protobuf.version>4.29.3</protobuf.version>
+      <grpc.version>1.70.0</grpc.version>
+      <grpc-spring-boot-starter.version>3.1.0.RELEASE</grpc-spring-boot-starter.version>
+      <grpc-server-spring-boot-starter.version>3.1.0.RELEASE</grpc-server-spring-boot-starter.version>
+      <common-config.version>2.0.0</common-config.version>
+      <javax-annotation-api.version>1.3.2</javax-annotation-api.version>
 
       <!-- Vulnerability Fixes -->
       <yawk-lz4.version>1.10.1</yawk-lz4.version>
@@ -223,6 +237,53 @@
           <artifactId>commons-lang3</artifactId>
           <version>${commons-lang3.version}</version>
         </dependency>
+
+        <!-- gRPC & Protobuf -->
+        <dependency>
+          <groupId>io.grpc</groupId>
+          <artifactId>grpc-netty-shaded</artifactId>
+          <version>${grpc.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>io.grpc</groupId>
+          <artifactId>grpc-protobuf</artifactId>
+          <version>${grpc.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>io.grpc</groupId>
+          <artifactId>grpc-stub</artifactId>
+          <version>${grpc.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
+          <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java-util</artifactId>
+          <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>net.devh</groupId>
+          <artifactId>grpc-client-spring-boot-starter</artifactId>
+          <version>${grpc-spring-boot-starter.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>net.devh</groupId>
+          <artifactId>grpc-server-spring-boot-starter</artifactId>
+          <version>${grpc-server-spring-boot-starter.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.currency-converter</groupId>
+          <artifactId>common-config</artifactId>
+          <version>${common-config.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>javax.annotation</groupId>
+          <artifactId>javax.annotation-api</artifactId>
+          <version>${javax-annotation-api.version}</version>
+        </dependency>
       </dependencies>
     </dependencyManagement>
 
@@ -240,6 +301,11 @@
                 <path>
                   <groupId>org.springframework.boot</groupId>
                   <artifactId>spring-boot-configuration-processor</artifactId>
+                </path>
+                <path>
+                  <groupId>org.projectlombok</groupId>
+                  <artifactId>lombok</artifactId>
+                  <version>${lombok.version}</version>
                 </path>
               </annotationProcessorPaths>
             </configuration>
