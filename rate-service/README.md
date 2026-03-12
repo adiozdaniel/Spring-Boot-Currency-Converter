@@ -36,9 +36,13 @@ The Rate Service is responsible for the "Rate" domain of the ecosystem. It abstr
 
 ## 📡 API Endpoints (Legacy REST)
 
-The service still maintains a REST interface for backward compatibility or direct health checks.
+The service still maintains a REST interface for backward compatibility or debugging.
 
-`GET /rate?from=USD&to=EUR`
+`GET /api/v1/rate?from=USD&to=EUR`
+
+### Health Check
+
+`GET /status`
 
 ## ⚙️ Configuration
 
