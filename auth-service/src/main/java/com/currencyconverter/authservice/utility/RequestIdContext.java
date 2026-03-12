@@ -34,33 +34,6 @@ public final class RequestIdContext {
         );
     }
 
-    /**
-     * Retrieves the request ID from Reactor Context synchronously.
-     * <p>
-     * <b>Warning:</b> This should only be used in non-reactive code paths
-     * or when you're certain the context is available.
-     * </p>
-     * <p>
-     * Usage with doOnNext/doOnEach:
-     * <pre>
-     * return someService.process()
-     *     .doOnNext(result -> {
-     *         String requestId = RequestIdContext.getRequestIdOrDefault("UNKNOWN");
-     *         logger.info("Request {} completed", requestId);
-     *     });
-     * </pre>
-     * </p>
-     *
-     * @param defaultValue the default value if request ID is not found
-     * @return the request ID or default value
-     */
-    public static String getRequestIdOrDefault(String defaultValue) {
-        return Mono.deferContextual(ctx ->
-                        Mono.just(ctx.getOrDefault(RequestIdFilter.REQUEST_ID_KEY, defaultValue))
-                )
-                .block();
-    }
-
     private RequestIdContext() {
         throw new AssertionError("Cannot instantiate RequestIdContext");
     }
