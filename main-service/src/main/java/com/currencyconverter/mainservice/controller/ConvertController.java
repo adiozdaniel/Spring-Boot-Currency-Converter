@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 
 @RestController
-@RequestMapping("/convert")
+@RequestMapping("/api/v1/convert")
 public class ConvertController {
 
   private final RateGrpcClient rateGrpcClient;
